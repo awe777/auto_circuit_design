@@ -2,10 +2,9 @@
 *.l
 *.pickle
 *.log
+*.pdf
+*.alter
+*.sp
 .env
 .venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+run_win.py
