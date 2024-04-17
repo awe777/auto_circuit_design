@@ -5,6 +5,5 @@
 *.pdf
 *.alter
 *.sp
-.env
+*.env
 .venv
-run_win.py
