@@ -117,7 +117,7 @@ def file_exists(path):
 			# interestlist is in format of [(FoM, parameter_dict)] -- changed in 20220905
 			# open(summary_path).readlines()[1:] contains the variables used for the circuit
 		return (True, interestlist)
-	except BaseException:
+	except Exception:
 		log_write("error: "+ str(sys.exc_info()[1]) + " @ accessing selectedparents.pickle - " + path)
 		return (False, None)
 def regenerate_pso(length, outlist, w, phi_p, phi_g, force_ignore_vb_dict=False):
@@ -287,7 +287,7 @@ def regenerate_pso(length, outlist, w, phi_p, phi_g, force_ignore_vb_dict=False)
 			log_write("warning: clamping detected for " + particle_title)
 	with open(basedir + "dict.pickle", "wb") as dest:
 		pickle.dump(nextbatch, dest, 0)
-def regenerate(length, outlist, use_prev = False):
+def regenerate_ga(length, outlist, use_prev = False):
 	assert type(int(length)) == type(0)
 	num = int(length)
 	sorted_outlist = sorted(outlist, key=lambda x: x[0])
@@ -311,7 +311,7 @@ def regenerate(length, outlist, use_prev = False):
 				nextbatch[paramkey] = templist
 			else:
 				nextbatch[paramkey] = []
-	except BaseException:
+	except Exception:
 		log_write("error: issue with parent extraction - "+str(sys.exc_info()[1]))
 		log_write("disabling parent transplant")
 		nextbatch = dict([(x, []) for x in list(original) + ["title"]])
