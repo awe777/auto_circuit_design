@@ -6,6 +6,7 @@ ms1_path = basedir + "output/BGR.ms1.csv"
 ma0_path = basedir + "output/BGR.ma0.csv"
 libpath = basedir + "result/library.csv"
 respath = basedir + "result/result.csv"
+sumpath = basedir + "result/summary.csv"
 def log_write(string):
 	output_str= str(int(time.time())) + ",;\t,;" + string
 	print(output_str[:output_str.index(",")] + ":\t" + string)
@@ -316,4 +317,35 @@ try:
 				libcsv.write(''.join([str(x) + ", " for x in [logtime, int(ms1_csv[alter]["creation_time"][-1])] + [int(round(ms1_csv[alter][col][-1] * 1000)) / 1000.0 for col in var_list]])[:-2] + "\n")
 except OSError:
 	log_write(str(sys.exc_info()[0]) + " @ CSV library content write: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))
+	raise
+
+ctime_index = None
+fom_index = None
+time_index = None
+past_time = []
+text_dict = {}
+first_line = ""
+try:
+	with open(respath, "rt") as rescsv:
+		for line in rescsv:
+			splitline = line.rstrip().split(", ")
+			if None in [time_index, ctime_index, fom_index]:
+				time_index = splitline.index("time")
+				ctime_index = splitline.index("identifier")
+				fom_index = splitline.index("fom - pso")
+				first_line = line.rstrip()
+			else:
+				past_time.append(int(splitline[time_index]))
+				creation_time = int(splitline[ctime_index])
+				if (text_dict[creation_time][0] if creation_time in text_dict else -float("inf")) < float(splitline[fom_index]):
+					text_dict[creation_time] = (float(splitline[fom_index]), line.rstrip())
+	duration = (lambda x: [float(x[z + 1] - x[z]) / 1e6 for z in range(len(x) - 1)])(sorted(list(set(past_time))))
+	with open(sumpath, "wt") as sumcsv:
+		sumcsv.write(first_line + "\n")
+		for creation_time in sorted(text_dict):
+			sumcsv.write(text_dict[creation_time][1] + "\n")
+		sumcsv.write("\ncycle time - min, cycle time - max, cycle time - avg, cycle time - std\n")
+		sumcsv.write(''.join([str(x) + ", " for x in stats(duration)])[:-2] + "\n")
+except OSError:
+	log_write(str(sys.exc_info()[0]) + " @ CSV result content summary: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))
 	raise
