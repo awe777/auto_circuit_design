@@ -342,7 +342,7 @@ try:
 	duration = (lambda x: [float(x[z + 1] - x[z]) / 1e6 for z in range(len(x) - 1)])(sorted(list(set(past_time))))
 	with open(sumpath, "wt") as sumcsv:
 		sumcsv.write(first_line + "\n")
-		for creation_time in sorted(text_dict):
+		for creation_time in sorted(text_dict, key=lambda x: text_dict[x][0], reverse=True):
 			sumcsv.write(text_dict[creation_time][1] + "\n")
 		sumcsv.write("\ncycle time - min, cycle time - max, cycle time - avg, cycle time - std\n")
 		sumcsv.write(''.join([str(x) + ", " for x in stats(duration)])[:-2] + "\n")
