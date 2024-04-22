@@ -345,7 +345,10 @@ try:
 		for creation_time in sorted(text_dict, key=lambda x: text_dict[x][0], reverse=True):
 			sumcsv.write(text_dict[creation_time][1] + "\n")
 		sumcsv.write("\ncycle time - min, cycle time - max, cycle time - avg, cycle time - std\n")
-		sumcsv.write(''.join([str(x) + ", " for x in stats(duration)])[:-2] + "\n")
+		stats_duration = stats(duration)
+		sumcsv.write(''.join([str(x) + ", " for x in stats_duration])[:-2] + "\n")
+		stats_duration = stats([x for x in duration if abs((stats_duration[2] - x) / stats_duration[3]) < 2])
+		sumcsv.write(''.join([str(x) + ", " for x in stats_duration])[:-2] + "\n")
 except OSError:
 	log_write(str(sys.exc_info()[0]) + " @ CSV result content summary: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))
 	raise
