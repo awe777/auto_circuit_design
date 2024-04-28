@@ -147,11 +147,10 @@ for alter in ms0_csv:
 	out1 = [x * (1, -1)[ms0_csv[alter]["stage0_out_maxat"][z] < ms0_csv[alter]["stage0_out_minat"][z]] for z, x in enumerate(ms0_csv[alter]["stage0_out_tc"])]
 	out2 = [x * (1, -1)[ms0_csv[alter]["output_maxat"][z] < ms0_csv[alter]["output_minat"][z]] for z, x in enumerate(ms0_csv[alter]["output_tc"])]
 	# stats = lambda list0: (lambda x: x + [std(list0, x[-1])])([min(list0), max(list0), avg(list0)])
-	# ms0_tc_stats[alter] = ms0_tc_stats[alter] + stats(out0)
-	ms0_tc_stats[alter] = ms0_tc_stats[alter] + stats(out0)[0:2]
-	ms0_tc_stats[alter] = ms0_tc_stats[alter] + stats(ms0_csv[alter]["stage0_vref_tc"])[2:4]
+	ms0_tc_stats[alter] = ms0_tc_stats[alter] + stats(out0)
 	ms0_tc_stats[alter] = ms0_tc_stats[alter] + stats(out1)
-	ms0_tc_stats[alter] = ms0_tc_stats[alter] + stats(out2)
+	ms0_tc_stats[alter] = ms0_tc_stats[alter] + stats(out2)[0:2]
+	ms0_tc_stats[alter] = ms0_tc_stats[alter] + stats(ms0_csv[alter]["output_tc"])[2:4]
 	ms0_tc_linefit[alter] = []
 	ms0_out_stats[alter] = stats(ms0_csv[alter]["output_avg"])
 	ms0_pow_stats[alter] = stats(ms0_csv[alter]["power_all"])
