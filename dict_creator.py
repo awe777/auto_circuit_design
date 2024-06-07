@@ -1,4 +1,6 @@
 import os, random, pickle, sys, time, math, cmath
+import numpy as np
+from numpy import linalg as npLA
 basedir = os.getcwd() + "/"
 def log_write(string):
 	output_str= str(int(time.time())) + ",;\t,;" + string
@@ -13,7 +15,7 @@ def std(inputlist, avg_init=None):
 		avg_ = avg(inputlist)
 	else:
 		avg_ = avg_init
-	return math.pow(avg([pow(float(x - avg_), 2) for x in inputlist]), 0.5)
+	return math.pow(avg([float(x - avg_) * float(x - avg_) for x in inputlist]), 0.5)
 # last cycle was 1705524931406114
 # [10.5, 20.0, 4.0, 15.1, 0.8, 9.0, 16.2, 4.9, 4.0, 19.3, 11.8, 3.0, 8.9, 15.1, 3.0, 11.6, 7.3, 5.0, 6.9, 8.7, 4.0, 1.4, 12.1, 1.0, 2.5, 18.8, 2.0]
 var_list = ["vref_op_pch3_w", "vref_op_pch3_l", "vref_op_pch3_m", "vref_op_nch_w", "vref_op_nch_l", "vref_op_nch_m", "vref_op_stg2_w", "vref_op_stg2_m", "vref_op_stg2_l", "vref_op_join_l", "vref_op_outn_l", "vref_op_out3_l", "stage0_pch_w", "stage0_pch_l", "stage0_pch_m", "op1_stack0_w", "op1_stack0_l", "op1_stack0_m", "op1_stack1_w", "op1_stack1_l", "op1_stack1_m", "op1_join_w", "op1_join_l", "op1_join_m", "op2_input_w", "op2_input_l", "op2_input_m", "op2_base_w", "op2_base_l", "op2_base_m", "res_rr0_w", "res_rr0_l", "res_rr0_m", "res_rr1_w", "res_rr1_l", "res_rr1_m", "res_rr3_w", "res_rr3_l", "res_rr3_m", "res_rr5_w", "res_rr5_l", "res_rr5_m", "psrr_stabilizer_w", "psrr_stabilizer_l", "psrr_stabilizer_m"]
@@ -120,6 +122,88 @@ def file_exists(path):
 	except Exception:
 		log_write("error: "+ str(sys.exc_info()[1]) + " @ accessing selectedparents.pickle - " + path)
 		return (False, None)
+def regenerate_cma_es(length, outlist, force_reset=False, force_length=False, a_cov=2, c_m=1):
+	# outlist is a list of [FoM, dict([(key in var_list + ["title"], value)])]
+	# a_cov is usually set to 2, setting less than 2 could be useful in noisy functions
+	# c_m is usually set to 1, setting less than 1 could be useful in noisy functions
+	ndim = len(var_list)
+	num = min(4 + int(3 * math.log(ndim)), len(outlist))
+	if force_length:
+		num = max(int(length), num)
+	var_list_ordered = sorted(var_list)
+	sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=True)
+	make_new = force_reset
+	try:
+		if not force_reset:
+			with open(basedir + "cma_es_param.pickle", "rb") as source:
+				mean, step_sigma, cov_mat, p_sigma, p_cov, gen_count = pickle.load(source)
+	except OSError:
+		make_new = True
+		
+	enoi = math.sqrt(2) * math.gamma((1 + ndim)/2) / math.gamma(ndim/2) 
+	# math.gamma() is introduced in 3.2, approximation is sqrt(n) * (1 - (4n)^-1 + (21n^2)^-1)
+	raw_weight = [math.log((1 + num)/ 2) - math.log(1 + z) for z in range(num)]
+	mark = len([w for w in raw_weight if w >= 0])
+	sum_w_pos = sum(raw_weight[:mark])
+	sum_w_neg = -sum(raw_weight[mark:])
+	mu_eff_pos = sum_w_pos * sum_w_pos / sum([w * w for w in raw_weight[:mark]])
+	mu_eff_neg = sum_w_neg * sum_w_neg / sum([w * w for w in raw_weight[mark:]])
+	c_1 = a_cov / ((ndim + 1.3) ** 2 + mu_eff_pos)
+	c_cov = (4 + mu_eff_pos/ndim) / (ndim + 4 + 2 * mu_eff_pos/ndim)
+	c_mu = min(1 - c_1, a_cov * (mu_eff_pos + 1 / mu_eff_pos - 1.75) / ((ndim + 2) ** 2 + a_cov * mu_eff_pos / 2))
+	c_sigma = (mu_eff_pos + 2) / (ndim + mu_eff_pos + 5)
+	d_sigma = 1 + max(0, math.pow((mu_eff_pos - 1) / (ndim + 1), 0.5) - 1) + c_sigma
+	alpha_mu = 1 + c_1/c_mu
+	alpha_mueff = 1 + 2 * mu_eff_neg / (mu_eff_pos + 2)
+	alpha_pdef = (1 - c_1 - c_mu) / (ndim * c_mu)
+	act_weight = [(min(alpha_mu, alpha_mueff, alpha_pdef), 1)[z < mark] * w / (sum_w_neg, sum_w_pos)[z < mark] for z, w in enumerate(raw_weight)]
+	
+	if make_new:
+		mean = [avg([entry[1][key] for entry in sorted_outlist]) for key in var_list_ordered]
+		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) * 0.3
+		cov_mat = [[math.pow((0, avg([entry[1][var_list_ordered[row]] for entry in sorted_outlist]) / step_sigma)[row == col], 2) for col in range(ndim)] for row in range(ndim)]
+		p_sigma = [0 for z in range(ndim)]
+		p_cov = [0 for z in range(ndim)]
+		gen_count = 0
+	
+	cov_eigen_lam, cov_eigen_vec = npLA.eig(np.array(cov_mat))
+	# if cov_mat is a symmetric positive definite matrix, then cov_eigen_vec @ np.diag(cov_eigen_lam) @ cov_eigen_vec.transpose() == cov_mat holds true
+	# Examples of symmetric positive definite matrixes are np.diag([1,2,3]) or [[4, 12, -16], [12, 37, -43], [-16, -43, 98]] or [[10, 5, 2], [5, 3, 2], [2, 2, 3]]
+	# note that numpy may have slight calculation errors: e.g. with [[2, -1, 0], [-1, 2, -1], [0, -1, 2]]
+	cov_invsqrt = cov_eigen_vec @ np.diag(np.power(cov_eigen_lam, -0.5)) @ cov_eigen_vec.transpose()
+	y_iw = [[(entry[1][key] - mean[z0]) / step_sigma for z0, key in enumerate(var_list_ordered)] for entry in sorted_outlist]
+	y_w = np.array([sum([w * y_iw[z1][z0] for z1, w in enumerate(act_weight[:mark])]) for z0, key in enumerate(var_list_ordered)])
+	mean = np.array([(1 - c_m) * mean[z0] + c_m * sum([w * sorted_outlist[z1][1][key] for z1, w in enumerate(act_weight[:mark])]) for z0, key in enumerate(var_list_ordered)])
+	p_sigma = (1 - c_sigma) * np.array(p_sigma) + np.sqrt(c_sigma * (2 - c_sigma) * mu_eff_pos) * cov_invsqrt @ y_w
+	step_sigma = step_sigma * np.exp(c_sigma / d_sigma * (npLA.norm(p_sigma) / enoi - 1))
+	
+	h_sigma = int(npLA.norm(p_sigma) / np.sqrt(1 - np.power(1 - c_sigma, 2 * (gen_count + 1))) < (1.4 + 2 / (ndim + 1)) * enoi)
+	p_cov = (1 - c_cov) * np.array(p_cov) + h_sigma * np.sqrt(c_sigma * (2 - c_sigma) * mu_eff_pos) * y_w
+	new_cov_0 = (1 + c_1 * (1 - h_sigma) * c_cov * (2 - c_cov) - c_1 - c_u * sum(act_weight)) * np.array(cov_mat)
+	new_cov_1 = c_1 * (lambda x: x.transpose() @ x)(np.atleast_2d(p_cov))
+	act_weight = [(n / np.power(npLA.norm(cov_invsqrt @ np.array(y_iw[z])), 2), 1)[z < mark] * w for z, w in enumerate(act_weight)]
+	new_cov_2 = c_mu * sum([w * (lambda x: x.transpose() @ x)(np.atleast_2d(y_iw[z])) for z, w in enumerate(act_weight)])
+	cov_mat = new_cov_0 + new_cov_1 + new_cov_2
+	gen_count = gen_count + 1
+	with open(basedir + "cma_es_param.pickle", "wb") as dest:
+		pickle.dump((mean.tolist(), float(step_sigma), cov_mat.tolist(), p_sigma.tolist(), p_cov.tolist(), int(gen_count)), dest, 0)
+	
+	cov_eigen_lam, cov_eigen_vec = npLA.eig(np.array(cov_mat))
+	nextbatch = dict([(key, []) for key in var_list + ["title"]])
+	for z in range(num):
+		generated = mean + step_sigma * (cov_eigen_vec @ np.diag(np.sqrt(cov_eigen_lam)) @ np.array([random.gauss(0, 1) for key in var_list]))
+		for z0, key in enumerate(var_list_ordered):
+			value = float(generated[z0])
+			if original_unit[key] is not None:
+				value = int(round(value / original_unit[key])) * original_unit[key]
+			if original_min[key] is not None:
+				value = (original_min[key], value)[value > original_min[key]]
+			if original_max[key] is not None:
+				value = (value, original_max[key])[value > original_max[key]]
+			nextbatch[key].append(value)
+		nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
+	with open(basedir + "dict.pickle", "wb") as dest:
+		pickle.dump(nextbatch, dest, 0)
 def regenerate_pso(length, outlist, w, phi_p, phi_g, force_ignore_vb_dict=False):
 	# w is weight
 	# phi_p is cognitive coefficient - self-improvement factor
