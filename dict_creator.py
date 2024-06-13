@@ -179,9 +179,9 @@ def regenerate_cma_es(length, outlist, force_reset=False, force_length=False, a_
 	
 	h_sigma = int(npLA.norm(p_sigma) / np.sqrt(1 - np.power(1 - c_sigma, 2 * (gen_count + 1))) < (1.4 + 2 / (ndim + 1)) * enoi)
 	p_cov = (1 - c_cov) * np.array(p_cov) + h_sigma * np.sqrt(c_sigma * (2 - c_sigma) * mu_eff_pos) * y_w
-	new_cov_0 = (1 + c_1 * (1 - h_sigma) * c_cov * (2 - c_cov) - c_1 - c_u * sum(act_weight)) * np.array(cov_mat)
+	new_cov_0 = (1 + c_1 * (1 - h_sigma) * c_cov * (2 - c_cov) - c_1 - c_mu * sum(act_weight)) * np.array(cov_mat)
 	new_cov_1 = c_1 * (lambda x: x.transpose() @ x)(np.atleast_2d(p_cov))
-	act_weight = [(n / np.power(npLA.norm(cov_invsqrt @ np.array(y_iw[z])), 2), 1)[z < mark] * w for z, w in enumerate(act_weight)]
+	act_weight = [(ndim / np.power(npLA.norm(cov_invsqrt @ np.array(y_iw[z])), 2), 1)[z < mark] * w for z, w in enumerate(act_weight)]
 	new_cov_2 = c_mu * sum([w * (lambda x: x.transpose() @ x)(np.atleast_2d(y_iw[z])) for z, w in enumerate(act_weight)])
 	cov_mat = new_cov_0 + new_cov_1 + new_cov_2
 	gen_count = gen_count + 1
