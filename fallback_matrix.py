@@ -1,4 +1,5 @@
 import math
+# https://en.wikipedia.org/wiki/Jacobi_eigenvalue_algorithm
 # matrix is 2D array of matrix[row][col]
 # e.g.: [[1, 0], [0, 1]] is a 2 x 2 identity square matrix
 def vec_op(vec0, vec1, operation):
@@ -45,6 +46,18 @@ def gauss_jordan_lowertriangle(input_matrix, accumulate_matrix=None):
 	return gauss_jordan_triangle(input_matrix, True, accumulate_matrix)
 def gauss_jordan_uppertriangle(input_matrix, accumulate_matrix=None):
 	return gauss_jordan_triangle(input_matrix, False, accumulate_matrix)
+def gauss_jordan_det(input_matrix):
+	assert(not False in [len(row) == len(matrix) for row in matrix])
+	rowlen = len(matrix)
+	col_order = gauss_jordan_col_manip(matrix, True)
+	right_transform = [[int(col == col_order[row]) for col in range(rowlen)] for row in range(rowlen)]
+	not_exactly_eigenvalues = [row[z] for z, row in enumerate(gauss_jordan_triangle(input_matrix, True)[0])]
+	if 0 in not_exactly_eigenvalues:
+		return 0
+	else:
+		negatives = len([ersatz_eigen for ersatz_eigen in not_exactly_eigenvalues if ersatz_eigen < 0])
+		abs_mult = math.exp(sum([math.log(abs(ersatz_eigen)) for ersatz_eigen in not_exactly_eigenvalues]))
+		return (1, -1)[negatives % 2] * abs_mult
 def matrix_inverse_gaussjordanable(matrix):
 	assert(not False in [len(row) == len(matrix) for row in matrix])
 	matrix0, matrix1 = gauss_jordan_uppertriangle(*gauss_jordan_lowertriangle(matrix))
@@ -66,5 +79,5 @@ def matrix_inverse(matrix):
 	rowlen = len(matrix)
 	col_order = gauss_jordan_col_manip(matrix, True)
 	right_transform = [[int(col == col_order[row]) for col in range(rowlen)] for row in range(rowlen)]
-	right_inv_tform = [[int(col == col_order[col_order[row]]) for col in range(rowlen)] for row in range(rowlen)]
-	return matrix_mult(right_inv_tform, matrix_inverse_gaussjordanable(matrix_mult(matrix, right_transform)))
+	return matrix_mult(right_transform, matrix_inverse_gaussjordanable(matrix_mult(matrix, right_transform)))
+	
