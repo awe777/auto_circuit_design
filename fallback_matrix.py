@@ -16,6 +16,8 @@ def matrix_mult(matrix0, matrix1):
 	matrix1_trans = matrix_trans(matrix1)
 	assert(sum([sum([int(len(row0) == len(row1)) for row0 in matrix0]) for row1 in matrix1_trans]) == len(matrix0) * len(matrix1_trans))
 	return [[vec_dot(row0, row1) for row1 in matrix1_trans] for row0 in matrix0]
+def matrix_trace(matrix):
+	return sum([matrix[z][z] for z in range(min([len(matrix)] + [len(row) for row in matrix]))])
 def gauss_jordan_triangle(input_matrix, lower, accumulate_matrix=None):
 	assert(not False in [len(input_matrix) == len(row) for row in input_matrix])
 	matrix0 = [[rowcol for rowcol in rowval] for rowval in input_matrix]
@@ -81,22 +83,29 @@ def matrix_inverse(matrix):
 	right_transform = [[int(col == col_order[row]) for col in range(rowlen)] for row in range(rowlen)]
 	right_inv_tform = [[int(col == col_order[col_order[row]]) for col in range(rowlen)] for row in range(rowlen)]
 	return matrix_mult(right_inv_tform, matrix_inverse_gaussjordanable(matrix_mult(matrix, right_transform)))
-def givens_rotation(dim, i, j, angle):
-	return [[((math.sin(theta) * (2 * int(row == i) - 1), math.cos(theta))[col == row], int(col == row))[sum([sum([int(z0 == z1) for z1 in (col, row)]) for z0 in (i, j)]) < 2] for col in range(ndim)] for row in range(ndim)]
+def givens_rotation(ndim, i, j, theta):
+	return [[((math.sin(theta) * (2 * int(row == i) - 1), math.cos(theta))[col == row], int(col == row))[sum([sum([int(z0 == z1) for z1 in (col, row)]) for z0 in (i, j)]) != 2] for col in range(ndim)] for row in range(ndim)]
+def matrix_spectral_ratio(matrix_symmetric):
+	return sum([math.pow(matrix_symmetric[z][z], 2) for z in range(len(matrix_symmetric))]) / sum([sum([math.pow(rowcol, 2) for rowcol in row]) for row in matrix_symmetric])
 def jacobi_similar(matrix_symmetric):
-	record = (-1, -1)
-	cur_max = -float("inf")
-	for i, row in enumerate(matrix_symmetric):
-		for j, rowcol in enumerate(row):
-			if i != j and rowcol > cur_max:
-				record = (i, j)
-				cur_max = rowcol
-	x, y = record
-	if matrix_symmetric[x][x] == matrix_symmetric[y][y]:
-		angle = math.pi/4
-	else:
-		angle = 0.5 * math.atan(2 * matrix_symmetric[x][y] / (matrix_symmetric[y][y] - matrix_symmetric[x][x]))
-	rotation_matrix = givens_rotation(len(matrix_symmetric), i, j, angle)
-	rotation_matinv = matrix_trans(rotation_matrix)
-	return matrix_mult(rotation_matinv, matrix_mult(matrix_symmetric, rotation_matrix))
-
+	current = [[rowcol for rowcol in row] for row in matrix_symmetric]
+	possible = current
+	check = lambda a,b: abs(1 - matrix_trace(a)/matrix_trace(b)) < 0.001 if matrix_trace(b) != 0 else abs(matrix_trace(a) - matrix_trace(b)) < 0.001
+	while check(current, possible) and 1 - matrix_spectral_ratio(possible)/matrix_spectral_ratio(current)) < 0.05:
+		current = possible
+		record = (-1, -1)
+		cur_max = -float("inf")
+		for i, row in enumerate(current):
+			for j, rowcol in enumerate(row):
+				if i != j and rowcol > cur_max:
+					record = (i, j)
+					cur_max = rowcol
+		x, y = record
+		if current[x][x] == current[y][y]:
+			angle = math.pi/4
+		else:
+			angle = 0.5 * math.atan(2 * current[x][y] / (current[y][y] - current[x][x]))
+		rotation_matrix = givens_rotation(len(current), i, j, angle)
+		rotation_matinv = matrix_trans(rotation_matrix)
+		possible = matrix_mult(rotation_matinv, matrix_mult(current, rotation_matrix))
+	return current	
