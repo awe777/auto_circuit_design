@@ -79,19 +79,10 @@ def matrix_inverse(matrix):
 	rowlen = len(matrix)
 	col_order = gauss_jordan_col_manip(matrix, True)
 	right_transform = [[int(col == col_order[row]) for col in range(rowlen)] for row in range(rowlen)]
-<<<<<<< HEAD
-	return matrix_mult(right_transform, matrix_inverse_gaussjordanable(matrix_mult(matrix, right_transform)))
-	
-=======
 	right_inv_tform = [[int(col == col_order[col_order[row]]) for col in range(rowlen)] for row in range(rowlen)]
 	return matrix_mult(right_inv_tform, matrix_inverse_gaussjordanable(matrix_mult(matrix, right_transform)))
 def givens_rotation(dim, i, j, angle):
-	eye = [[int(row == col) for col in range(dim)] for row in range(dim)]
-	eye[i][i] = math.cos(angle)
-	eye[j][j] = math.cos(angle)
-	eye[j][i] = math.sin(angle)
-	eye[i][j] = -math.sin(angle)
-	return eye
+	return [[((math.sin(theta) * (2 * int(row == i) - 1), math.cos(theta))[col == row], int(col == row))[sum([sum([int(z0 == z1) for z1 in (col, row)]) for z0 in (i, j)]) < 2] for col in range(ndim)] for row in range(ndim)]
 def jacobi_similar(matrix_symmetric):
 	record = (-1, -1)
 	cur_max = -float("inf")
@@ -108,4 +99,4 @@ def jacobi_similar(matrix_symmetric):
 	rotation_matrix = givens_rotation(len(matrix_symmetric), i, j, angle)
 	rotation_matinv = matrix_trans(rotation_matrix)
 	return matrix_mult(rotation_matinv, matrix_mult(matrix_symmetric, rotation_matrix))
->>>>>>> origin/main
+
