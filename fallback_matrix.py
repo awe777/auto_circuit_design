@@ -101,7 +101,7 @@ def matrix_spectral_ratio(matrix_symmetric):
 def jacobi_similar(matrix_symmetric):
 	current = [[rowcol for rowcol in row] for row in matrix_symmetric]
 	possible = current
-	check = lambda a,b: abs(1 - matrix_trace(a)/matrix_trace(b)) < 0.001 if matrix_trace(b) != 0 else abs(matrix_trace(a) - matrix_trace(b)) < 0.001
+	check = lambda a, b: (lambda trace_b: abs(int(trace_b != 0) - matrix_trace(a)/(1, trace_b)[trace_b != 0]) < 0.001)(matrix_trace(b))
 	start_time = time.time()
 	while check(current, possible) and 1 - matrix_spectral_ratio(possible)/matrix_spectral_ratio(current) < 0.05 and time.time() - start_time < 180:
 		# loose runtime bound of 180 seconds
