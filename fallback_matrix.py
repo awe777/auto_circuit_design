@@ -1,4 +1,4 @@
-import math
+import math, time
 # https://en.wikipedia.org/wiki/Jacobi_eigenvalue_algorithm
 # matrix is 2D array of matrix[row][col]
 # e.g.: [[1, 0], [0, 1]] is a 2 x 2 identity square matrix
@@ -8,6 +8,8 @@ def vec_dot(vec0, vec1):
 	return sum(vec_op(vec0, vec1, lambda x, y: x * y))
 def vec_scale(sca, vec0):
 	return [sca * item for item in vec0]
+def matrix_equal(matrix0, matrix1):
+	return not False in [not False in vec_op(vec0, vec1, lambda x,y: x == y) for vec0, vec1 in zip(matrix0, matrix1, strict=True)]
 def matrix_trans(matrix):
 	return [list(row) for row in zip(*matrix)]
 def matrix_linop(matrix0, matrix1, operation):
@@ -48,40 +50,49 @@ def gauss_jordan_lowertriangle(input_matrix, accumulate_matrix=None):
 	return gauss_jordan_triangle(input_matrix, True, accumulate_matrix)
 def gauss_jordan_uppertriangle(input_matrix, accumulate_matrix=None):
 	return gauss_jordan_triangle(input_matrix, False, accumulate_matrix)
-def gauss_jordan_det(input_matrix):
+def gauss_jordan_col_manip(matrix, force_assert=False):
 	assert(not False in [len(row) == len(matrix) for row in matrix])
 	rowlen = len(matrix)
-	col_order = gauss_jordan_col_manip(matrix, True)
+	col_dict = {}
+	value_list = []
+	ne_0_index = [[z for z, val in enumerate(row) if val != 0] for row in matrix_trans(matrix)]
+	for z in range(len([len(x) for x in ne_0_index if len(x) > 0])):
+		chosen_index = [len(x) for x in ne_0_index].index(min([len(x) for x in ne_0_index if len(x) > 0]))
+		value = min(ne_0_index.pop(chosen_index))
+		col_dict[chosen_index] = value
+		value_list.append(value)
+		for x in ne_0_index:
+			if value in x:
+				x.remove(value)
+	for z in range(rowlen):
+		if not z in col_dict:
+			assert(not force_assert)
+			col_dict[z] = min([x for x in range(rowlen) if not x in value_list])
+	return [col_dict[z] for z in range(rowlen)]
+def gauss_jordan_det(input_matrix):
+	assert(not False in [len(row) == len(input_matrix) for row in input_matrix])
+	rowlen = len(input_matrix)
+	col_order = gauss_jordan_col_manip(input_matrix, False)
 	right_transform = [[int(col == col_order[row]) for col in range(rowlen)] for row in range(rowlen)]
-	not_exactly_eigenvalues = [row[z] for z, row in enumerate(gauss_jordan_triangle(input_matrix, True)[0])]
+	right_transform_det = 1 # work-in-progress, (root_unity(matrix), matrix_trace(matrix), np.linalg.det(matrix))
+	not_exactly_eigenvalues = [row[z] for z, row in enumerate(gauss_jordan_triangle(matrix_mult(input_matrix, right_transform), True)[0])]
 	if 0 in not_exactly_eigenvalues:
 		return 0
 	else:
 		negatives = len([ersatz_eigen for ersatz_eigen in not_exactly_eigenvalues if ersatz_eigen < 0])
 		abs_mult = math.exp(sum([math.log(abs(ersatz_eigen)) for ersatz_eigen in not_exactly_eigenvalues]))
-		return (1, -1)[negatives % 2] * abs_mult
+		return right_transform_det * (1, -1)[(negatives) % 2] * abs_mult
 def matrix_inverse_gaussjordanable(matrix):
 	assert(not False in [len(row) == len(matrix) for row in matrix])
 	matrix0, matrix1 = gauss_jordan_uppertriangle(*gauss_jordan_lowertriangle(matrix))
 	return [vec_scale(1/matrix0[z][z], row) for z, row in enumerate(matrix1)]
-def gauss_jordan_col_manip(matrix, force_assert=False):
-	assert(not False in [len(row) == len(matrix) for row in matrix])
-	rowlen = len(matrix)
-	col_dict = {}
-	ne_0_index = [[z for z, val in enumerate(row) if val != 0] for row in matrix_trans(matrix)]
-	for z in sorted([z for z, row in enumerate(ne_0_index) if len(row) > 0], key=lambda x: len(ne_0_index[z])):
-		col_dict[z] = min([x for x in ne_0_index[z] if not x in list(zip(*col_dict.items()))[1]])
-	for z in range(rowlen):
-		if not z in col_dict:
-			assert(not force_assert)
-			col_dict[z] = min([x for x in range(rowlen) if not x in list(zip(*col_dict.items()))[1]])
-	return [col_dict[z] for z in range(rowlen)]
 def matrix_inverse(matrix):
 	assert(not False in [len(row) == len(matrix) for row in matrix])
 	rowlen = len(matrix)
 	col_order = gauss_jordan_col_manip(matrix, True)
 	right_transform = [[int(col == col_order[row]) for col in range(rowlen)] for row in range(rowlen)]
 	right_inv_tform = [[int(col == col_order[col_order[row]]) for col in range(rowlen)] for row in range(rowlen)]
+	# turns out not all permutation matrices have itself as its inverse, only symmetric permutation matrices do
 	return matrix_mult(right_inv_tform, matrix_inverse_gaussjordanable(matrix_mult(matrix, right_transform)))
 def givens_rotation(ndim, i, j, theta):
 	return [[((math.sin(theta) * (2 * int(row == i) - 1), math.cos(theta))[col == row], int(col == row))[sum([sum([int(z0 == z1) for z1 in (col, row)]) for z0 in (i, j)]) != 2] for col in range(ndim)] for row in range(ndim)]
@@ -91,7 +102,9 @@ def jacobi_similar(matrix_symmetric):
 	current = [[rowcol for rowcol in row] for row in matrix_symmetric]
 	possible = current
 	check = lambda a,b: abs(1 - matrix_trace(a)/matrix_trace(b)) < 0.001 if matrix_trace(b) != 0 else abs(matrix_trace(a) - matrix_trace(b)) < 0.001
-	while check(current, possible) and 1 - matrix_spectral_ratio(possible)/matrix_spectral_ratio(current)) < 0.05:
+	start_time = time.time()
+	while check(current, possible) and 1 - matrix_spectral_ratio(possible)/matrix_spectral_ratio(current) < 0.05 and start_time - time.time() < 180:
+		# loose runtime bound of 180 seconds
 		current = possible
 		record = (-1, -1)
 		cur_max = -float("inf")
@@ -108,4 +121,4 @@ def jacobi_similar(matrix_symmetric):
 		rotation_matrix = givens_rotation(len(current), i, j, angle)
 		rotation_matinv = matrix_trans(rotation_matrix)
 		possible = matrix_mult(rotation_matinv, matrix_mult(current, rotation_matrix))
-	return current	
+	return current
