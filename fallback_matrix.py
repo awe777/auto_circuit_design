@@ -69,12 +69,30 @@ def gauss_jordan_col_manip(matrix, force_assert=False):
 			assert(not force_assert)
 			col_dict[z] = min([x for x in range(rowlen) if not x in value_list])
 	return [col_dict[z] for z in range(rowlen)]
+def gauss_jordan_col_manip_det(col_order):
+	count = 0
+	col_copy = [x for x in col_order]
+	for z in range(len(col_copy)):
+		if col_copy[z] != z:
+			index = col_copy[z]
+			col_copy[z] = col_copy[index]
+			col_copy[index] = index
+			count = count + 1
+	assert(not False in [x == y for x, y in zip(col_copy, range(len(col_copy)))])
+	return (1, -1)[count % 2]
 def gauss_jordan_det(input_matrix):
 	assert(not False in [len(row) == len(input_matrix) for row in input_matrix])
 	rowlen = len(input_matrix)
 	col_order = gauss_jordan_col_manip(input_matrix, False)
 	right_transform = [[int(col == col_order[row]) for col in range(rowlen)] for row in range(rowlen)]
-	right_transform_det = 1 # work-in-progress, (root_unity(matrix), matrix_trace(matrix), np.linalg.det(matrix))
+	right_transform_det = gauss_jordan_col_manip_det(col_order) # work-in-progress, (root_unity(matrix), matrix_trace(matrix), np.linalg.det(matrix))
+	# failed, on 8 x 8 matrix, exists two permutation matrices A and B where x^3 == I and trace(x) == 0 for both, and det(A) == -det(B)
+	# what is still guaranteed is x^(2z) == I for z integer and det(x) == 1
+	# perm_mat = lambda col_order: [[int(col == col_order[row]) for col in range(len(col_order))] for row in range(len(col_order))]
+	# perms = lambda z: [perm_mat(col_order) for col_order in itertools.permutations(range(z))]
+	# root_unity = lambda perm: [not False in [perm_power[z][z] == 1 for z in range(len(perm_power))] for perm_power in itertools.accumulate([perm for z in range(len(perm) * 2)], lambda x,y: matrix_mult(x,y))].index(True)
+	# problem: accumulate only exists in 3.3+, permutations only exists in 2.6+, source code provides sample code for permutations
+	# check = lambda z: sorted(sorted(set([(root_unity(perm), np.trace(perm), np.linalg.det(perm)) for perm in perms(z)]), key=lambda x:x[1]), key=lambda x:x[0])
 	not_exactly_eigenvalues = [row[z] for z, row in enumerate(gauss_jordan_triangle(matrix_mult(input_matrix, right_transform), True)[0])]
 	if 0 in not_exactly_eigenvalues:
 		return 0
