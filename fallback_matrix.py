@@ -8,8 +8,18 @@ def vec_dot(vec0, vec1):
 	return sum(vec_op(vec0, vec1, lambda x, y: x * y))
 def vec_scale(sca, vec0):
 	return [sca * item for item in vec0]
+def matrix_almostequal(matrix0, matrix1, epsilon=1e-12):
+	return not False in [not False in vec_op(vec0, vec1, lambda x,y: abs(x - y) <= epsilon) for vec0, vec1 in zip(matrix0, matrix1, strict=True)]
 def matrix_equal(matrix0, matrix1):
-	return not False in [not False in vec_op(vec0, vec1, lambda x,y: x == y) for vec0, vec1 in zip(matrix0, matrix1, strict=True)]
+	return matrix_almostequal(matrix0, matrix1, 0)
+def matrix_copy(matrix):
+	return [[rowcol for rowcol in row] for row in matrix]
+def matrix_eye(matrix_or_len):
+	if type(matrix_or_len) == type(0):
+		rowlen = matrix_or_len
+	else:
+		rowlen = len(matrix_or_len)
+	return [[int(row == col) for col in range(rowlen)] for row in range(rowlen)]
 def matrix_trans(matrix):
 	return [list(row) for row in zip(*matrix)]
 def matrix_linop(matrix0, matrix1, operation):
@@ -26,9 +36,9 @@ def gauss_jordan_triangle(input_matrix, lower, accumulate_matrix=None):
 	rowlen = len(matrix0)
 	if accumulate_matrix is not None:
 		assert(not False in [rowlen == len(row) for row in accumulate_matrix])
-		matrix1 = [[rowcol for rowcol in row] for row in accumulate_matrix]
+		matrix1 = matrix_copy(accumulate_matrix)
 	else:
-		matrix1 = [[int(row == col) for col in range(rowlen)] for row in range(rowlen)]
+		matrix1 = matrix_eye(input_matrix)
 	try:
 		for z0 in range(rowlen):
 			index = (z0, rowlen - 1 - z0)[lower]
@@ -93,7 +103,7 @@ def gauss_jordan_det(input_matrix):
 	# root_unity = lambda perm: [not False in [perm_power[z][z] == 1 for z in range(len(perm_power))] for perm_power in itertools.accumulate([perm for z in range(len(perm) * 2)], lambda x,y: matrix_mult(x,y))].index(True)
 	# problem: accumulate only exists in 3.3+, permutations only exists in 2.6+, source code provides sample code for permutations
 	# check = lambda z: sorted(sorted(set([(root_unity(perm), np.trace(perm), np.linalg.det(perm)) for perm in perms(z)]), key=lambda x:x[1]), key=lambda x:x[0])
-	not_exactly_eigenvalues = [row[z] for z, row in enumerate(gauss_jordan_triangle(matrix_mult(input_matrix, right_transform), True)[0])]
+	not_exactly_eigenvalues = [row[z] for z, row in enumerate(gauss_jordan_lowertriangle(matrix_mult(input_matrix, right_transform))[0])]
 	if 0 in not_exactly_eigenvalues:
 		return 0
 	else:
@@ -109,19 +119,23 @@ def matrix_inverse(matrix):
 	rowlen = len(matrix)
 	col_order = gauss_jordan_col_manip(matrix, True)
 	right_transform = [[int(col == col_order[row]) for col in range(rowlen)] for row in range(rowlen)]
-	right_inv_tform = [[int(col == col_order[col_order[row]]) for col in range(rowlen)] for row in range(rowlen)]
+	# right_inv_tform = [[int(col == col_order[col_order[row]]) for col in range(rowlen)] for row in range(rowlen)]
 	# turns out not all permutation matrices have itself as its inverse, only symmetric permutation matrices do
-	return matrix_mult(right_inv_tform, matrix_inverse_gaussjordanable(matrix_mult(matrix, right_transform)))
+	gauss_jordanable_matrix = matrix_mult(matrix, right_transform)
+	if matrix_equal(gauss_jordanable_matrix, matrix_eye(rowlen)):
+		return [[int(col == col_order[col_order[row]]) for col in range(rowlen)] for row in range(rowlen)]
+	else:
+		return matrix_mult(right_transform, matrix_inverse_gaussjordanable(gauss_jordanable_matrix))
 def givens_rotation(ndim, i, j, theta):
 	return [[((math.sin(theta) * (2 * int(row == i) - 1), math.cos(theta))[col == row], int(col == row))[sum([sum([int(z0 == z1) for z1 in (col, row)]) for z0 in (i, j)]) != 2] for col in range(ndim)] for row in range(ndim)]
 def matrix_spectral_ratio(matrix_symmetric):
 	return sum([math.pow(matrix_symmetric[z][z], 2) for z in range(len(matrix_symmetric))]) / sum([sum([math.pow(rowcol, 2) for rowcol in row]) for row in matrix_symmetric])
-def jacobi_similar(matrix_symmetric):
+def jacobi_similar(matrix_symmetric, soft_timeout=float("inf")):
 	current = [[rowcol for rowcol in row] for row in matrix_symmetric]
 	possible = current
 	check = lambda a, b: (lambda trace_b: abs(int(trace_b != 0) - matrix_trace(a)/(1, trace_b)[trace_b != 0]) < 0.001)(matrix_trace(b))
 	start_time = time.time()
-	while check(current, possible) and 1 - matrix_spectral_ratio(possible)/matrix_spectral_ratio(current) < 0.05 and time.time() - start_time < 180:
+	while check(current, possible) and (matrix_spectral_ratio(current) - matrix_spectral_ratio(possible)) / matrix_spectral_ratio(current) < 0.05 and time.time() - start_time < soft_timeout:
 		# loose runtime bound of 180 seconds
 		current = possible
 		record = (-1, -1)
@@ -132,11 +146,20 @@ def jacobi_similar(matrix_symmetric):
 					record = (i, j)
 					cur_max = rowcol
 		x, y = record
-		if current[x][x] == current[y][y]:
-			angle = math.pi/4
-		else:
-			angle = 0.5 * math.atan(2 * current[x][y] / (current[y][y] - current[x][x]))
-		rotation_matrix = givens_rotation(len(current), i, j, angle)
+		rotation_matrix = givens_rotation(len(current), i, j, 0.5 * math.atan2(current[y][y] - current[x][x], 2 * current[x][y]))
 		rotation_matinv = matrix_trans(rotation_matrix)
 		possible = matrix_mult(rotation_matinv, matrix_mult(current, rotation_matrix))
 	return current
+def nullspace(matrix):
+	rowlen = max([len(row) for row in matrix])
+	square_matrix = [[0 for col in range(rowlen)] for row in range(rowlen)]
+	for rowid, row in enumerate(matrix):
+		for colid, rowcol in enumerate(row):
+			square_matrix[rowid][colid] = rowcol
+	col_order = gauss_jordan_col_manip(square_matrix, False)
+	right_transform = [[int(col == col_order[row]) for col in range(rowlen)] for row in range(rowlen)]
+	right_inv_tform = [[int(col == col_order[col_order[row]]) for col in range(rowlen)] for row in range(rowlen)]
+	attempted_diagonal = matrix_mult(gauss_jordan_uppertriangle(gauss_jordan_lowertriangle(matrix_mult(square_matrix, right_transform))), right_inv_tform)
+	zero_row_id = [z for z, row in attempted_diagonal if not False in [rowcol == 0 for rowcol in row]]
+	null_basis = []
+	return null_basis
