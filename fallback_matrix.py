@@ -139,12 +139,13 @@ def givens_rotation(ndim, i, j, theta):
 	return [[((math.sin(theta) * (2 * int(row == i) - 1), math.cos(theta))[col == row], int(col == row))[sum([sum([int(z0 == z1) for z1 in (col, row)]) for z0 in (i, j)]) != 2] for col in range(ndim)] for row in range(ndim)]
 def matrix_spectral_ratio(matrix_symmetric):
 	return sum([math.pow(matrix_symmetric[z][z], 2) for z in range(len(matrix_symmetric))]) / sum([sum([math.pow(rowcol, 2) for rowcol in row]) for row in matrix_symmetric])
-def jacobi_similar(matrix_symmetric, soft_timeout=float("inf")):
+def jacobi_similar(matrix_symmetric, soft_timeout=float("inf"), hard_count=20):
 	current = [[rowcol for rowcol in row] for row in matrix_symmetric]
 	possible = current
 	check = lambda a, b: (lambda trace_b: abs(int(trace_b != 0) - matrix_trace(a)/(1, trace_b)[trace_b != 0]) < 0.001)(matrix_trace(b))
 	start_time = time.time()
-	while check(current, possible) and (matrix_spectral_ratio(current) - matrix_spectral_ratio(possible)) / matrix_spectral_ratio(current) < 0.05 and time.time() - start_time < soft_timeout:
+	count = 0
+	while count < hard_count and matrix_spectral_ratio(current) != 1 and check(current, possible) and (matrix_spectral_ratio(current) - matrix_spectral_ratio(possible)) / matrix_spectral_ratio(current) < 0.05 and time.time() - start_time < soft_timeout:
 		current = possible
 		record = (-1, -1)
 		cur_max = -float("inf")
@@ -157,6 +158,7 @@ def jacobi_similar(matrix_symmetric, soft_timeout=float("inf")):
 		rotation_matrix = givens_rotation(len(current), i, j, 0.5 * math.atan2(current[y][y] - current[x][x], 2 * current[x][y]))
 		rotation_matinv = matrix_trans(rotation_matrix)
 		possible = matrix_mult(rotation_matinv, matrix_mult(current, rotation_matrix))
+		count = count + 1
 	return current
 def nullspace_basis(matrix):
 	# also known as kernel
@@ -181,3 +183,4 @@ def nullspace_basis(matrix):
 	# then the basis for setting rowid as the dependent variable is -(M_0 @ M_1)^-1 @ M_0 @ v_0, and the negative can be integrated to M_1 instead
 	null_basis = []
 	return null_basis
+# https://en.wikipedia.org/wiki/Singular_value_decomposition#Relation_to_eigenvalue_decomposition
