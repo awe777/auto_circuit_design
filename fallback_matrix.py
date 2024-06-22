@@ -35,6 +35,7 @@ def gauss_jordan_triangle(input_matrix, lower, accumulate_matrix=None):
 	matrix0 = [[rowcol for rowcol in rowval] for rowval in input_matrix]
 	rowlen = len(matrix0)
 	if accumulate_matrix is not None:
+		assert(rowlen == len(accumulate_matrix))
 		assert(not False in [rowlen == len(row) for row in accumulate_matrix])
 		matrix1 = matrix_copy(accumulate_matrix)
 	else:
@@ -56,10 +57,18 @@ def gauss_jordan_triangle(input_matrix, lower, accumulate_matrix=None):
 	except Exception:
 		pass
 	return (matrix0, matrix1)
+# gauss_jordan_(lower/upper)triangle(M, R=I) returns (PM, PR), with PM being lower/upper triangle if and only if M is invertible
+# P for gauss_jordan_(lower/upper)triangle(M, R) is guaranteed to be a upper/lower triangle
+# to ensure the operation works, the input matrix should be first right-multiplied by the permutation matrix generated from gauss_jordan_col_manip
+# example code:
+#	right_transform = [[int(col == col_order[row]) for col in range(rowlen)] for row in range(rowlen)]
+#	right_inv_tform = [[int(col == col_order[col_order[row]]) for col in range(rowlen)] for row in range(rowlen)]
 def gauss_jordan_lowertriangle(input_matrix, accumulate_matrix=None):
 	return gauss_jordan_triangle(input_matrix, True, accumulate_matrix)
+	# the result ensures that for a specific column, a non-zero diagonal implies that all entries above the diagonal is 0   
 def gauss_jordan_uppertriangle(input_matrix, accumulate_matrix=None):
 	return gauss_jordan_triangle(input_matrix, False, accumulate_matrix)
+	# the result ensures that for a specific column, a non-zero diagonal implies that all entries below the diagonal is 0
 def gauss_jordan_col_manip(matrix, force_assert=False):
 	assert(not False in [len(row) == len(matrix) for row in matrix])
 	rowlen = len(matrix)
@@ -136,7 +145,6 @@ def jacobi_similar(matrix_symmetric, soft_timeout=float("inf")):
 	check = lambda a, b: (lambda trace_b: abs(int(trace_b != 0) - matrix_trace(a)/(1, trace_b)[trace_b != 0]) < 0.001)(matrix_trace(b))
 	start_time = time.time()
 	while check(current, possible) and (matrix_spectral_ratio(current) - matrix_spectral_ratio(possible)) / matrix_spectral_ratio(current) < 0.05 and time.time() - start_time < soft_timeout:
-		# loose runtime bound of 180 seconds
 		current = possible
 		record = (-1, -1)
 		cur_max = -float("inf")
@@ -150,7 +158,12 @@ def jacobi_similar(matrix_symmetric, soft_timeout=float("inf")):
 		rotation_matinv = matrix_trans(rotation_matrix)
 		possible = matrix_mult(rotation_matinv, matrix_mult(current, rotation_matrix))
 	return current
-def nullspace(matrix):
+def nullspace_basis(matrix):
+	# also known as kernel
+	# a nullspace of a matrix is a subset of R^n space that, as the name implies, forms a space that nulls the matrix 
+	# (i.e. v in nullspace => Ax = 0) => A^-1 exists implies that the kernel of A consists only of the zero vector 
+	# This function generates the nontrivial basis of the nullspace 
+	# Usecase: basis of (A - kI)'s nullspace of A's eigenvalue k is the eigenvector(s) associated with k, and yes, plural
 	rowlen = max([len(row) for row in matrix])
 	square_matrix = [[0 for col in range(rowlen)] for row in range(rowlen)]
 	for rowid, row in enumerate(matrix):
@@ -159,7 +172,12 @@ def nullspace(matrix):
 	col_order = gauss_jordan_col_manip(square_matrix, False)
 	right_transform = [[int(col == col_order[row]) for col in range(rowlen)] for row in range(rowlen)]
 	right_inv_tform = [[int(col == col_order[col_order[row]]) for col in range(rowlen)] for row in range(rowlen)]
-	attempted_diagonal = matrix_mult(gauss_jordan_uppertriangle(gauss_jordan_lowertriangle(matrix_mult(square_matrix, right_transform))), right_inv_tform)
-	zero_row_id = [z for z, row in attempted_diagonal if not False in [rowcol == 0 for rowcol in row]]
+	attempted_diagonal = matrix_mult(gauss_jordan_uppertriangle(*gauss_jordan_lowertriangle(matrix_mult(square_matrix, right_transform)))[0], right_inv_tform)
+	ne_0_row_id = [z for z, row in enumerate(attempted_diagonal) if True in [rowcol != 0 for rowcol in row]]
+	zero_row_id = [z for z, row in enumerate(attempted_diagonal) if not False in [rowcol == 0 for rowcol in row]]
+	# for each rowid in zero_row_id, set v_0 = matrix_trans([[int(not z in ne_0_row_id + [rowid]) for z in range(rowlen)]])
+	# then, M_1 = [[rowcol for col, rowcol in enumerate(row) if col in ne_0_row_id] for row in matrix_eye(rowlen)]
+	# also, M_0 = [attempted_diagonal[z] for z in ne_0_row_id]
+	# then the basis for setting rowid as the dependent variable is -(M_0 @ M_1)^-1 @ M_0 @ v_0, and the negative can be integrated to M_1 instead
 	null_basis = []
 	return null_basis
