@@ -255,3 +255,7 @@ def nullspace_basis(matrix, force_normal=True):
 	# a list of vectors, i.e. if translated to a matrix-like, each row is for each vector basis
 	# note, most vectors are listed as column vectors
 # https://en.wikipedia.org/wiki/Singular_value_decomposition#Relation_to_eigenvalue_decomposition
+# with a = np.reshape([5,4,2,1,0,1,-1,-1,-1,-1,3,0,1,1,-1,2],(4,4)):
+# 	aat_vec @ np.frompyfunc(lambda x: round(x, 8), 1, 1)(aat_vec.transpose() @ a @ ata_vec) @ ata_vec.transpose() is very, very close to a
+# https://en.wikipedia.org/wiki/QR_decomposition
+# https://en.wikipedia.org/wiki/QR_algorithm
