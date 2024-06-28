@@ -409,3 +409,7 @@ def regenerate_ga(length, outlist, context=context_builder(), use_prev = False):
 			fill = fill + 2
 	with open(curdir_file_win("dict.pickle"), "wb") as dest:
 		pickle.dump(nextbatch, dest, 0)
+def regenerate_bo(length, outlist, context=context_builder()):
+	assert type(int(length)) == type(0)
+	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
+	var_list = sorted(list(original))
