@@ -27,6 +27,75 @@ def normal_2():
 	return (out.real, out.imag) 
     # returns 2 samples from normal distribution
 	# can be deprecated given random.gauss(0, 1) exists, but can be useful in airgapped systems
+def bessel_k_order_0(value_input): # corresponds to K_0(x) = 1/2 * \int_(-\infty)^\infty {e^(iwx) * (1+w^2)^-0.5 dw}
+	limit_sum = 1000
+	fourier_sampling = [1.0/cmath.sqrt(1.0 + cmath.pow(2.0*cmath.pi*z/float(limit_sum), 2)) for z in range(limit_sum + 1)]
+	dirac_comb = [(fourier_sampling[z + 1] + fourier_sampling[z]) / 2 for z in range(limit_sum)]
+	e_i_theta = [cmath.cos(2 * cmath.pi * (z + 0.5) * value_input/ limit_sum) for z in range(limit_sum)]
+	return sum([y0 * y1 for y0, y1 in zip(dirac_comb, e_i_theta)])
+def bessel_k_order_1(value_input): # corresponds to K_1(x) = 1/2 * \int_(-\infty)^\infty {w/i * e^(iwx) * (1+w^2)^-0.5 dw}
+	limit_sum = 1000
+	fourier_sampling = [(2.0*cmath.pi*z/float(limit_sum))/cmath.sqrt(1.0 + cmath.pow(2.0*cmath.pi*z/float(limit_sum), 2)) for z in range(limit_sum + 1)]
+	dirac_comb = [(fourier_sampling[z + 1] + fourier_sampling[z]) / 2 for z in range(limit_sum)]
+	e_i_theta = [cmath.sin(2 * cmath.pi * (z + 0.5) * value_input/ limit_sum) for z in range(limit_sum)]
+	return sum([y0 * y1 for y0, y1 in zip(dirac_comb, e_i_theta)])
+def factorial(value_input):
+	assert type(value_input) == type(0) and not value_input < 0
+	result = 1
+	for z in range(value_input):
+		result = result * (z + 1)
+	return result
+def gamma_approx(value_input):
+	assert value_input != 0
+	if type(value_input) == type(0) and value_input > 0:
+		# terminal condition
+		return factorial(value_input - 1)
+	elif value_input > 1:
+		# domain (1, inf)
+		return (value_input - 1) * gamma_approx(value_input - 1)
+	elif value_input < 0:
+		# domain (-inf, 0), non-integer (integer hits 0 check above)
+		return gamma_approx(value_input + 1) / value_input
+	else:
+		# domain (0, 1) - Stirling approximation at Z + x
+		big_z = 50
+		stirling_value = float(big_z) + value_input
+		result = cmath.sqrt(2 * cmath.pi * stirling_value) * cmath.pow(stirling_value / cmath.e, stirling_value) * sum([cmath.pow(stirling_value, -float(z)) / float(x) for z, x in enumerate([1, 12, 288, -372.95, -4357.83])])
+		for z in range(big_z):
+			result = result / float(value_input + z + 1)
+		return result
+def digamma_approx(value_input):
+	assert type(value_input) != type(0) or value_input > 0
+	lower_bound = cmath.log(value_input) - 1.0/value_input
+	upper_bound = cmath.log(value_input) - 0.5/value_input
+	lower_diff = abs(gamma_approx(value_input) - cmath.exp(lower_bound))
+	upper_diff = abs(gamma_approx(value_input) - cmath.exp(upper_bound))
+	if lower_diff < upper_diff:
+		return lower_bound
+	else:
+		return upper_bound
+def matern_kernel(order, value_input, alpha, step=0.2):
+	absolute_order = abs(order)
+	assert absolute_order > 0
+	normalized_input = value_input * cmath.sqrt(2.0) / float(alpha)
+	if absolute_order == 1:
+		return normalized_input * bessel_k_order_1(normalized_input)
+	elif absolute_order < 1:
+		nearest_doublehalf = 1
+	elif absolute_order <= 2:
+		nearest_doublehalf = 3
+	else:
+		nearest_doublehalf = int(round(absolute_order - 0.5) * 2) + 1 
+	noc = int((nearest_doublehalf - 1) / 2) # nearest_order_count
+	nearest_order = noc + 0.5
+	normalized_input = normalized_input * cmath.sqrt(nearest_order)
+	residue = absolute_order - nearest_order
+	residue_mult = cmath.pow(normalized_input * cmath.exp(0.5 - gamma_approx(nearest_order) + 1.0/nearest_order + (1.0+nearest_order)/(1.0-nearest_order)), residue)
+	if abs(residue) < step:
+		matern_nearest_order = cmath.exp(0 - normalized_input) * factorial(noc)/factorial(noc * 2) * sum([factorial(noc + z) * cmath.pow(2 * normalized_input, noc - z) / (factorial(z) * factorial(noc - z)) for z in range(noc + 1)])
+	else:
+		matern_nearest_order = matern_kernel(order + (-1, 1)[residue < 0] * step, value_input, alpha, step)
+	return matern_nearest_order * residue_mult
 def create(length, full_random = False, context=context_builder()):
 	assert type(int(length)) == type(0)
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
