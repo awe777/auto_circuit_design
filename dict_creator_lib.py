@@ -85,7 +85,7 @@ def matern_kernel(order, value_input, alpha, step=0.2):
 	elif absolute_order <= 2:
 		nearest_doublehalf = 3
 	else:
-		nearest_doublehalf = int(round(absolute_order - 0.5) * 2) + 1 
+		nearest_doublehalf = int(round(absolute_order - 0.5)) * 2 + 1 
 	noc = int((nearest_doublehalf - 1) / 2) # nearest_order_count
 	nearest_order = noc + 0.5
 	normalized_input = normalized_input * cmath.sqrt(nearest_order)
