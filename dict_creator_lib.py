@@ -89,7 +89,7 @@ def matern_kernel(order, value_input, alpha, step=0.2):
 	noc = int((nearest_doublehalf - 1) / 2) # nearest_order_count
 	nearest_order = noc + 0.5
 	normalized_input = normalized_input * cmath.sqrt(nearest_order)
-	residue = absolute_order - nearest_order
+	residue = min(abs(absolute_order - nearest_order), step) * (-1, 1)[absolute_order > nearest_order]
 	residue_mult = cmath.pow(normalized_input * cmath.exp(0.5 - gamma_approx(nearest_order) + 1.0/nearest_order + (1.0+nearest_order)/(1.0-nearest_order)), residue)
 	if abs(residue) < step:
 		matern_nearest_order = cmath.exp(0 - normalized_input) * factorial(noc)/factorial(noc * 2) * sum([factorial(noc + z) * cmath.pow(2 * normalized_input, noc - z) / (factorial(z) * factorial(noc - z)) for z in range(noc + 1)])
