@@ -1,7 +1,7 @@
-import sys, os, pickle, dict_creator_lib, random
-basedir = os.getcwd() + "/"
-# last cycle was 1705524931406114
-# [10.5, 20.0, 4.0, 15.1, 0.8, 9.0, 16.2, 4.9, 4.0, 19.3, 11.8, 3.0, 8.9, 15.1, 3.0, 11.6, 7.3, 5.0, 6.9, 8.7, 4.0, 1.4, 12.1, 1.0, 2.5, 18.8, 2.0]
+import sys, pickle, dict_creator_lib
+# import random
+basedir = dict_creator_lib.curdir_file_win()
+
 var_list = ["vref_op_pch3_w", "vref_op_pch3_l", "vref_op_pch3_m", "vref_op_nch_w", "vref_op_nch_l", "vref_op_nch_m", "vref_op_stg2_w", "vref_op_stg2_m", "vref_op_stg2_l", "vref_op_join_l", "vref_op_outn_l", "vref_op_out3_l", "stage0_pch_w", "stage0_pch_l", "stage0_pch_m", "op1_stack0_w", "op1_stack0_l", "op1_stack0_m", "op1_stack1_w", "op1_stack1_l", "op1_stack1_m", "op1_join_w", "op1_join_l", "op1_join_m", "op2_input_w", "op2_input_l", "op2_input_m", "op2_base_w", "op2_base_l", "op2_base_m", "res_rr0_w", "res_rr0_l", "res_rr0_m", "res_rr1_w", "res_rr1_l", "res_rr1_m", "res_rr3_w", "res_rr3_l", "res_rr3_m", "res_rr5_w", "res_rr5_l", "res_rr5_m", "psrr_stabilizer_w", "psrr_stabilizer_l", "psrr_stabilizer_m"]
 original = dict(map(lambda k, v: (k, v), var_list, [4, 8, 2, 1, 18.4, 2, 2.5, 4, 18.75, 15.1, 20, 15, 50, 20, 1, 25, 20, 8, 12.5, 5, 8, 0.6, 20, 2, 1, 8.5, 8, 1.5, 3, 4, 1, 20, 1, 1, 20, 1, 1, 20, 1, 1, 20, 1, 8.65, 13.4, 8]))
 original_unit = dict([(key, (0.025, 1)[key.endswith("m")]) for key in var_list])
@@ -28,7 +28,8 @@ def file_exists(path):
 
 check = file_exists(basedir + "selectedparents.pickle")
 boolval = len(sys.argv) > 2 and sys.argv[2] == "True"
-floatval = float((0.4 + 0.5 * random.random(), sys.argv[-1])[len(sys.argv) > 2])
+#floatval = float((0.4 + 0.5 * random.random(), sys.argv[-1])[len(sys.argv) > 2])
+floatval = 0
 #if True and check[0] and len(([], check[1])[check[0]]) >= 4: # Liu et al. (ACM 2009)
 if check[0]:
 	if len(check[1]) == 0:
