@@ -5,7 +5,7 @@ def context_builder(var_list_dicttuple = {}, rspread = 0.4):
 	tuple_list = [('random_spread', rspread)]
 	tuple_list = tuple_list + [(context_keys, dict([(key, var_list_dicttuple[z]) for key in var_list_dicttuple])) for z, context_keys in enumerate(["original", "original_unit", "original_min", "original_max"])]
 	return dict(tuple_list)
-def curdir_file_win(filename, force_dir=None):
+def curdir_file_win(filename="", force_dir=None):
     return (str(force_dir), os.getcwd().replace("\\", "/"))[force_dir is None] + "/" + str(filename)
 def log_write(string):
 	output_str= str(int(time.time())) + ",;\t,;" + string
@@ -13,6 +13,7 @@ def log_write(string):
 	logfile = open(curdir_file_win("run.log"), "at") # "run.log"
 	logfile.write("\n" + output_str)
 	logfile.close()
+# mathematic functions
 def avg(inputlist):
 	return sum(inputlist) / float(len(inputlist))
 def std(inputlist, avg_init=None):
@@ -27,18 +28,67 @@ def normal_2():
 	return (out.real, out.imag) 
     # returns 2 samples from normal distribution
 	# can be deprecated given random.gauss(0, 1) exists, but can be useful in airgapped systems
+def getsingle(fomlist):
+	acclist = [max(fomlist[0], 0)]
+	for z in range(len(fomlist) - 1):
+		acclist.append(acclist[z] + max(fomlist[z + 1], 0))
+	if sum(fomlist) != 0:
+		acclist = [value / sum(fomlist) for value in acclist]
+	else:
+		acclist = [(z + 1) / len(fomlist) for z in range(len(fomlist))]
+	index = 0
+	rand = random.random()
+	for z in range(len(acclist)):
+		if acclist[z] >= rand:
+			index = z
+			break
+	return index
+def getsample(fomlist, number):
+	result = []
+	for z in range(number):
+		result.append(getsingle([(x, 0)[z in result] for z, x in enumerate(fomlist)]))
+	return result
+def getcouple(fomlist):
+	return getsample(fomlist, 2)
+def crossover(dict0, dict1, nu = 13, cr = 0.8, mr = 0.8, mm = 0.01, print_debug = False):
+	if print_debug:
+		log_write("mutation rate: " + str(mr * 100) + "%")
+		log_write("mutation multiplier: " + str(mm))
+	rand = random.random()
+	beta = cmath.pow((2 * rand, 0.5 / (1 - rand))[rand > 0.5], 1 / (nu + 1))
+	dict2 = {}
+	dict3 = {}
+	for key in [x for x in list(dict0) if x != "title"]:
+		normals = normal_2()
+		# Liu et al. (ACM 2009) - Equation 11 mutation rate / multiplier (mr/mm)
+		dict0_value = dict0[key] * (1, 1 + mm * normals[0])[random.random() < mr]
+		dict1_value = dict1[key] * (1, 1 + mm * normals[1])[random.random() < mr]
+		# Liu et al. (ACM 2009) - crossover
+		dict2[key] = 0.5 * (dict0_value + dict1_value) + (beta / 2) * (dict0_value - dict1_value)
+		dict3[key] = 0.5 * (dict0_value + dict1_value) - (beta / 2) * (dict0_value - dict1_value)
+	return ((dict0, dict2)[random.random() < cr], (dict1, dict3)[random.random() < cr])
+# kernel functions are mostly helpers for Bayesian optimization methods
+# value_input for kernel functions is stretched distance sum([alpha[z] * pow(x[z] - y[z], 2.0) for z in range(len(x))]) ** 0.5 of points x and y
+def squared_exponential_kernel(value_input, alpha, scale):
+	return cmath.pow(scale, 2) * cmath.exp(0 - cmath.pow(value_input / (2.0 * alpha), 2))
+def bessel_k_order_01_com(value_input, fourier_sampling, is_order_1):
+	limit_sum = len(fourier_sampling) - 1
+	assert limit_sum > 0
+	dirac_comb = [(fourier_sampling[z + 1] + fourier_sampling[z]) / (2.0 * limit_sum) for z in range(limit_sum)]
+	# dirac_comb turns sections of (trapezoidal approximation of) area under the Fourier curve into a Dirac delta spiking at its midpoint
+	selected_function = (cmath.cos, cmath.sin)[int(bool(is_order_1))]
+	e_i_theta = [selected_function(2 * cmath.pi * (z + 0.5) * value_input/ limit_sum) for z in range(limit_sum)]
+	return sum([y0 * y1 for y0, y1 in zip(dirac_comb, e_i_theta)])
 def bessel_k_order_0(value_input): # corresponds to K_0(x) = 1/2 * \int_(-\infty)^\infty {e^(iwx) * (1+w^2)^-0.5 dw}
 	limit_sum = 1000
 	fourier_sampling = [1.0/cmath.sqrt(1.0 + cmath.pow(2.0*cmath.pi*z/float(limit_sum), 2)) for z in range(limit_sum + 1)]
-	dirac_comb = [(fourier_sampling[z + 1] + fourier_sampling[z]) / 2 for z in range(limit_sum)]
-	e_i_theta = [cmath.cos(2 * cmath.pi * (z + 0.5) * value_input/ limit_sum) for z in range(limit_sum)]
-	return sum([y0 * y1 for y0, y1 in zip(dirac_comb, e_i_theta)])
+	return bessel_k_order_01_com(value_input, fourier_sampling, False)
 def bessel_k_order_1(value_input): # corresponds to K_1(x) = 1/2 * \int_(-\infty)^\infty {w/i * e^(iwx) * (1+w^2)^-0.5 dw}
 	limit_sum = 1000
 	fourier_sampling = [(2.0*cmath.pi*z/float(limit_sum))/cmath.sqrt(1.0 + cmath.pow(2.0*cmath.pi*z/float(limit_sum), 2)) for z in range(limit_sum + 1)]
-	dirac_comb = [(fourier_sampling[z + 1] + fourier_sampling[z]) / 2 for z in range(limit_sum)]
-	e_i_theta = [cmath.sin(2 * cmath.pi * (z + 0.5) * value_input/ limit_sum) for z in range(limit_sum)]
-	return sum([y0 * y1 for y0, y1 in zip(dirac_comb, e_i_theta)])
+	return bessel_k_order_01_com(value_input, fourier_sampling, True)
+def ornstein_uhlenbeck_kernel(value_input, alpha):
+	return cmath.exp(0 - value_input / alpha)
 def factorial(value_input):
 	assert type(value_input) == type(0) and not value_input < 0
 	result = 1
@@ -74,12 +124,39 @@ def digamma_approx(value_input):
 		return lower_bound
 	else:
 		return upper_bound
-def matern_kernel(order, value_input, alpha, step=0.2):
-	absolute_order = abs(order)
+# kernel wrapper and wrapped kernels
+def kernel_wrapper(kernel_function, point0, point1, **kwargs): # if there is scaling, "axis_scale_list" must be a named input
+	assert len(point0) == len(point1)
+	if "axis_scale_list" in kwargs:
+		as_list = kwargs["axis_scale_list"]
+	else:
+		as_list = [1 for x in point0]
+	distance = cmath.pow(sum([abs(m * (x - y)) ** 2 for m, x, y in zip(as_list, point0, point1)]), 0.5)
+	if distance == 0:
+		return 0
+	else:
+		return kernel_function(distance, **kwargs)
+def se_kernel(value_input, **kernel_setup):
+	assert not False in [keyword in kernel_setup for keyword in ["scale", "alpha"]], [keyword for keyword in ["scale", "alpha"] if not keyword in kernel_setup]
+	return squared_exponential_kernel(value_input, float(kernel_setup["alpha"]), float(kernel_setup["scale"]))
+def ou_kernel(value_input, **kernel_setup):
+	assert not False in [keyword in kernel_setup for keyword in ["alpha"]], [keyword for keyword in ["alpha"] if not keyword in kernel_setup]
+	return ornstein_uhlenbeck_kernel(value_input, float(kernel_setup["alpha"]))
+#def matern_kernel(value_input, order, alpha, step=0.2):
+def matern_kernel(value_input, **kernel_setup): # wrong residue approximation, currently fixing
+	assert not False in [keyword in kernel_setup for keyword in ["order", "alpha"]], [keyword for keyword in ["order", "alpha"] if not keyword in kernel_setup]
+	if "step" in kernel_setup:
+		step = float(kernel_setup["step"])
+	else:
+		step = 0.2
+	absolute_order = abs(kernel_setup["order"])
+	alpha = float(kernel_setup["alpha"])
 	assert absolute_order > 0
 	normalized_input = value_input * cmath.sqrt(2.0) / float(alpha)
-	if absolute_order == 1:
-		return normalized_input * bessel_k_order_1(normalized_input)
+	if absolute_order > 8:
+		return squared_exponential_kernel(value_input)
+	elif absolute_order == 1:
+		return ornstein_uhlenbeck_kernel(value_input, alpha)
 	elif absolute_order < 1:
 		nearest_doublehalf = 1
 	elif absolute_order <= 2:
@@ -90,12 +167,21 @@ def matern_kernel(order, value_input, alpha, step=0.2):
 	nearest_order = noc + 0.5
 	normalized_input = normalized_input * cmath.sqrt(nearest_order)
 	residue = min(abs(absolute_order - nearest_order), step) * (-1, 1)[absolute_order > nearest_order]
-	residue_mult = cmath.pow(normalized_input * cmath.exp(0.5 - gamma_approx(nearest_order) + 1.0/nearest_order + (1.0+nearest_order)/(1.0-nearest_order)), residue)
+	residue_mult = cmath.pow(normalized_input * cmath.exp(0.5 - digamma_approx(nearest_order) + 1.0/nearest_order + (1.0+nearest_order)/(1.0-nearest_order)), residue)
 	if abs(residue) < step:
 		matern_nearest_order = cmath.exp(0 - normalized_input) * factorial(noc)/factorial(noc * 2) * sum([factorial(noc + z) * cmath.pow(2 * normalized_input, noc - z) / (factorial(z) * factorial(noc - z)) for z in range(noc + 1)])
 	else:
-		matern_nearest_order = matern_kernel(order + (-1, 1)[residue < 0] * step, value_input, alpha, step)
+		matern_nearest_order = matern_kernel(absolute_order + (-1, 1)[residue < 0] * step, value_input, alpha, step)
 	return matern_nearest_order * residue_mult
+# the penultimate function that uses the kernel functions above
+def data_torture_normal_approximation(x_list, y_list):
+	# for x \in R^d in x_list and its associated y = f(x) \in R in y_list,  
+	# generates (multiple?) multivariate, len(x_list) = len(y_list) = n-dimensional normal distribution (mu \in R^n, sigma \in R^(n x n)) where getting y_list is very likely 
+	# returns a list of (mu, sigma, chance)
+	list_of_tuples = []
+	return list_of_tuples
+
+# actual machine-learning functions
 def create(length, full_random = False, context=context_builder()):
 	assert type(int(length)) == type(0)
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
@@ -125,45 +211,6 @@ def create(length, full_random = False, context=context_builder()):
 		log_write("".join([str(x) for x in ["DEBUG: ", count, " of ", length, " is fully randomized"]]))
 	with open(curdir_file_win("dict.pickle") , "wb") as dest:
 		pickle.dump(dictpickle, dest, 0)
-def crossover(dict0, dict1, nu = 13, cr = 0.8, mr = 0.8, mm = 0.01, print_debug = False):
-	if print_debug:
-		log_write("mutation rate: " + str(mr * 100) + "%")
-		log_write("mutation multiplier: " + str(mm))
-	rand = random.random()
-	beta = cmath.pow((2 * rand, 0.5 / (1 - rand))[rand > 0.5], 1 / (nu + 1))
-	dict2 = {}
-	dict3 = {}
-	for key in [x for x in list(dict0) if x != "title"]:
-		normals = normal_2()
-		# Liu et al. (ACM 2009) - Equation 11 mutation rate / multiplier (mr/mm)
-		dict0_value = dict0[key] * (1, 1 + mm * normals[0])[random.random() < mr]
-		dict1_value = dict1[key] * (1, 1 + mm * normals[1])[random.random() < mr]
-		# Liu et al. (ACM 2009) - crossover
-		dict2[key] = 0.5 * (dict0_value + dict1_value) + (beta / 2) * (dict0_value - dict1_value)
-		dict3[key] = 0.5 * (dict0_value + dict1_value) - (beta / 2) * (dict0_value - dict1_value)
-	return ((dict0, dict2)[random.random() < cr], (dict1, dict3)[random.random() < cr])
-def getsingle(fomlist):
-	acclist = [max(fomlist[0], 0)]
-	for z in range(len(fomlist) - 1):
-		acclist.append(acclist[z] + max(fomlist[z + 1], 0))
-	if sum(fomlist) != 0:
-		acclist = [value / sum(fomlist) for value in acclist]
-	else:
-		acclist = [(z + 1) / len(fomlist) for z in range(len(fomlist))]
-	index = 0
-	rand = random.random()
-	for z in range(len(acclist)):
-		if acclist[z] >= rand:
-			index = z
-			break
-	return index
-def getsample(fomlist, number):
-	result = []
-	for z in range(number):
-		result.append(getsingle([(x, 0)[z in result] for z, x in enumerate(fomlist)]))
-	return result
-def getcouple(fomlist):
-	return getsample(fomlist, 2)
 def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=False, force_length=False, a_cov=2, c_m=1):
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
@@ -207,7 +254,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 	
 	if make_new:
 		mean = [avg([entry[1][key] for entry in sorted_outlist]) for key in var_list_ordered]
-		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) * 0.3
+		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) / 3.0
 		cov_mat = [[cmath.pow((0, avg([entry[1][var_list_ordered[row]] for entry in sorted_outlist]) / step_sigma)[row == col], 2) for col in range(ndim)] for row in range(ndim)]
 		p_sigma = [0 for z in range(ndim)]
 		p_cov = [0 for z in range(ndim)]
