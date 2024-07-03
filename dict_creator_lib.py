@@ -83,10 +83,36 @@ def bessel_k_order_0(value_input): # corresponds to K_0(x) = 1/2 * \int_(-\infty
 	limit_sum = 1000
 	fourier_sampling = [1.0/cmath.sqrt(1.0 + cmath.pow(2.0*cmath.pi*z/float(limit_sum), 2)) for z in range(limit_sum + 1)]
 	return bessel_k_order_01_com(value_input, fourier_sampling, False)
+def bessel_k_order_half(value_input):
+	return cmath.exp(0 - value_input) * cmath.sqrt(cmath.pi / (2.0 * value_input))
 def bessel_k_order_1(value_input): # corresponds to K_1(x) = 1/2 * \int_(-\infty)^\infty {w/i * e^(iwx) * (1+w^2)^-0.5 dw}
 	limit_sum = 1000
 	fourier_sampling = [(2.0*cmath.pi*z/float(limit_sum))/cmath.sqrt(1.0 + cmath.pow(2.0*cmath.pi*z/float(limit_sum), 2)) for z in range(limit_sum + 1)]
 	return bessel_k_order_01_com(value_input, fourier_sampling, True)
+def bessel_k_order_int(value_input, order):
+	assert type(order) == type(0) and order >= 0
+	z0 = order
+	z1 = 0
+	current = [bessel_k_order_0(value_input), bessel_k_order_1(value_input)]
+	while z0 > 1:
+		mult = [1.0, 2.0 * (2 * z1 + 1) / value_input, 2.0 * (2 * z1 + 2) / value_input]
+		mult.append(1.0 + mult[1]*mult[2])
+		current = (lambda x,y: [mult[0] * x + mult[1] * y, mult[2] * x + mult[3] * y])(*current)
+		z0 = z0 - 2
+		z1 = z1 + 1
+	return current[z0]
+def bessel_k_order_halfint(value_input, order):
+	assert int(order - 0.5) == order - 0.5 and order - 0.5 >= 0
+	z0 = int(round(order + 0.5))
+	z1 = -0.25
+	current = [bessel_k_order_half(value_input), bessel_k_order_half(value_input)]
+	while z0 > 1:
+		mult = [1.0, 2.0 * (2 * z1 + 1) / value_input, 2.0 * (2 * z1 + 2) / value_input]
+		mult.append(1.0 + mult[1]*mult[2])
+		current = (lambda x,y: [mult[0] * x + mult[1] * y, mult[2] * x + mult[3] * y])(*current)
+		z0 = z0 - 2
+		z1 = z1 + 1
+	return current[z0]
 def ornstein_uhlenbeck_kernel(value_input, alpha):
 	return cmath.exp(0 - value_input / alpha)
 def factorial(value_input):
@@ -100,26 +126,28 @@ def gamma_approx(value_input):
 	if type(value_input) == type(0) and value_input > 0:
 		# terminal condition
 		return factorial(value_input - 1)
-	elif value_input > 1:
-		# domain (1, inf)
-		return (value_input - 1) * gamma_approx(value_input - 1)
-	elif value_input < 0:
-		# domain (-inf, 0), non-integer (integer hits 0 check above)
+	elif int(value_input - 0.5) == value_input - 0.5 and value_input - 0.5 >= 0:
+		count = int(value_input - 0.5)
+		result = cmath.sqrt(cmath.pi)
+		for z in range(count):
+			result = result * (z + 0.5)
+		return result
+	elif value_input < 50:
+		# domain (-inf, 50), non-integer (integer hits 0 check above)
 		return gamma_approx(value_input + 1) / value_input
 	else:
-		# domain (0, 1) - Stirling approximation at Z + x
-		big_z = 50
-		stirling_value = float(big_z) + value_input
+		# Stirling approximation for (50, inf)
+		stirling_value = value_input
 		result = cmath.sqrt(2 * cmath.pi * stirling_value) * cmath.pow(stirling_value / cmath.e, stirling_value) * sum([cmath.pow(stirling_value, -float(z)) / float(x) for z, x in enumerate([1, 12, 288, -372.95, -4357.83])])
-		for z in range(big_z):
-			result = result / float(value_input + z + 1)
 		return result
 def digamma_approx(value_input):
 	assert type(value_input) != type(0) or value_input > 0
+	dx = 0.001
 	lower_bound = cmath.log(value_input) - 1.0/value_input
 	upper_bound = cmath.log(value_input) - 0.5/value_input
-	lower_diff = abs(gamma_approx(value_input) - cmath.exp(lower_bound))
-	upper_diff = abs(gamma_approx(value_input) - cmath.exp(upper_bound))
+	derivative = (gamma_approx(value_input + dx) - gamma_approx(value_input))/dx
+	lower_diff = abs(derivative - lower_bound*gamma_approx(value_input))
+	upper_diff = abs(derivative - upper_bound*gamma_approx(value_input))
 	if lower_diff < upper_diff:
 		return lower_bound
 	else:
