@@ -142,12 +142,12 @@ def gamma_approx(value_input):
 		return result
 def digamma_approx(value_input):
 	assert type(value_input) != type(0) or value_input > 0
-	dx = 0.001
+	dx = 0.05
 	lower_bound = cmath.log(value_input) - 1.0/value_input
 	upper_bound = cmath.log(value_input) - 0.5/value_input
 	derivative = (gamma_approx(value_input + dx) - gamma_approx(value_input))/dx
-	lower_diff = abs(derivative - lower_bound*gamma_approx(value_input))
-	upper_diff = abs(derivative - upper_bound*gamma_approx(value_input))
+	lower_diff = abs(derivative/gamma_approx(value_input) - lower_bound)
+	upper_diff = abs(derivative/gamma_approx(value_input) - upper_bound)
 	if lower_diff < upper_diff:
 		return lower_bound
 	else:
