@@ -71,48 +71,6 @@ def crossover(dict0, dict1, nu = 13, cr = 0.8, mr = 0.8, mm = 0.01, print_debug 
 # value_input for kernel functions is stretched distance sum([alpha[z] * pow(x[z] - y[z], 2.0) for z in range(len(x))]) ** 0.5 of points x and y
 def squared_exponential_kernel(value_input, alpha, scale):
 	return cmath.pow(scale, 2) * cmath.exp(0 - cmath.pow(value_input / (2.0 * alpha), 2))
-""" def bessel_k_order_01_com(value_input, fourier_sampling, is_order_1):
-	limit_sum = len(fourier_sampling) - 1
-	assert limit_sum > 0
-	dirac_comb = [(fourier_sampling[z + 1] + fourier_sampling[z]) / (2.0 * limit_sum) for z in range(limit_sum)]
-	# dirac_comb turns sections of (trapezoidal approximation of) area under the Fourier curve into a Dirac delta spiking at its midpoint
-	selected_function = (cmath.cos, cmath.sin)[int(bool(is_order_1))]
-	e_i_theta = [selected_function(2 * cmath.pi * (z + 0.5) * value_input/ limit_sum) for z in range(limit_sum)]
-	return sum([y0 * y1 for y0, y1 in zip(dirac_comb, e_i_theta)])
-def bessel_k_order_0(value_input): # corresponds to K_0(x) = 1/2 * \int_(-\infty)^\infty {e^(iwx) * (1+w^2)^-0.5 dw}
-	limit_sum = 1000
-	fourier_sampling = [1.0/cmath.sqrt(1.0 + cmath.pow(2.0*cmath.pi*z/float(limit_sum), 2)) for z in range(limit_sum + 1)]
-	return bessel_k_order_01_com(value_input, fourier_sampling, False)
-def bessel_k_order_half(value_input):
-	return cmath.exp(0 - value_input) * cmath.sqrt(cmath.pi / (2.0 * value_input))
-def bessel_k_order_1(value_input): # corresponds to K_1(x) = 1/2 * \int_(-\infty)^\infty {w/i * e^(iwx) * (1+w^2)^-0.5 dw}
-	limit_sum = 1000
-	fourier_sampling = [(2.0*cmath.pi*z/float(limit_sum))/cmath.sqrt(1.0 + cmath.pow(2.0*cmath.pi*z/float(limit_sum), 2)) for z in range(limit_sum + 1)]
-	return bessel_k_order_01_com(value_input, fourier_sampling, True)
-def bessel_k_order_int(value_input, order):
-	assert type(order) == type(0) and order >= 0
-	z0 = order
-	z1 = 0
-	current = [bessel_k_order_0(value_input), bessel_k_order_1(value_input)]
-	while z0 > 1:
-		mult = [1.0, 2.0 * (2 * z1 + 1) / value_input, 2.0 * (2 * z1 + 2) / value_input]
-		mult.append(1.0 + mult[1]*mult[2])
-		current = (lambda x,y: [mult[0] * x + mult[1] * y, mult[2] * x + mult[3] * y])(*current)
-		z0 = z0 - 2
-		z1 = z1 + 1
-	return current[z0]
-def bessel_k_order_halfint(value_input, order):
-	assert int(order - 0.5) == order - 0.5 and order - 0.5 >= 0
-	z0 = int(round(order + 0.5))
-	z1 = -0.25
-	current = [bessel_k_order_half(value_input), bessel_k_order_half(value_input)]
-	while z0 > 1:
-		mult = [1.0, 2.0 * (2 * z1 + 1) / value_input, 2.0 * (2 * z1 + 2) / value_input]
-		mult.append(1.0 + mult[1]*mult[2])
-		current = (lambda x,y: [mult[0] * x + mult[1] * y, mult[2] * x + mult[3] * y])(*current)
-		z0 = z0 - 2
-		z1 = z1 + 1
-	return current[z0] """
 def ornstein_uhlenbeck_kernel(value_input, alpha):
 	return cmath.exp(0 - value_input / alpha)
 def factorial(value_input):
@@ -203,7 +161,7 @@ def ou_kernel(value_input, **kernel_setup):
 	assert not False in [keyword in kernel_setup for keyword in ["alpha"]], [keyword for keyword in ["alpha"] if not keyword in kernel_setup]
 	return ornstein_uhlenbeck_kernel(value_input, float(kernel_setup["alpha"]))
 #def matern_kernel(value_input, order, alpha, step=0.2):
-def matern_kernel(value_input, **kernel_setup): # wrong residue approximation, currently fixing
+def matern_kernel(value_input, **kernel_setup):
 	assert not False in [keyword in kernel_setup for keyword in ["order", "alpha"]], [keyword for keyword in ["order", "alpha"] if not keyword in kernel_setup]
 	if "step" in kernel_setup:
 		step = float(kernel_setup["step"])
