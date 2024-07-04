@@ -71,7 +71,7 @@ def crossover(dict0, dict1, nu = 13, cr = 0.8, mr = 0.8, mm = 0.01, print_debug 
 # value_input for kernel functions is stretched distance sum([alpha[z] * pow(x[z] - y[z], 2.0) for z in range(len(x))]) ** 0.5 of points x and y
 def squared_exponential_kernel(value_input, alpha, scale):
 	return cmath.pow(scale, 2) * cmath.exp(0 - cmath.pow(value_input / (2.0 * alpha), 2))
-def bessel_k_order_01_com(value_input, fourier_sampling, is_order_1):
+""" def bessel_k_order_01_com(value_input, fourier_sampling, is_order_1):
 	limit_sum = len(fourier_sampling) - 1
 	assert limit_sum > 0
 	dirac_comb = [(fourier_sampling[z + 1] + fourier_sampling[z]) / (2.0 * limit_sum) for z in range(limit_sum)]
@@ -112,7 +112,7 @@ def bessel_k_order_halfint(value_input, order):
 		current = (lambda x,y: [mult[0] * x + mult[1] * y, mult[2] * x + mult[3] * y])(*current)
 		z0 = z0 - 2
 		z1 = z1 + 1
-	return current[z0]
+	return current[z0] """
 def ornstein_uhlenbeck_kernel(value_input, alpha):
 	return cmath.exp(0 - value_input / alpha)
 def factorial(value_input):
@@ -152,6 +152,38 @@ def digamma_approx(value_input):
 		return lower_bound
 	else:
 		return upper_bound
+def basset_fourier_dirac_comb(order, limit_sum):
+	# https://dlmf.nist.gov/10.32#E11
+	# for order v > -1/2, x > 0:
+	# (x/2)^v * K_v(x) = gamma(v + 0.5) / gamma(0.5) * \int_0^\infty cos(xt)/(1+t^2)^(v+1/2) dt
+	assert limit_sum > 0
+	fourier_sampling = [gamma_approx(order + 0.5)*cmath.pow(1 + cmath.pow(z / float(limit_sum), 2), -0.5 - order)/cmath.sqrt(cmath.pi) for z in range(limit_sum + 1)]
+	return [(fourier_sampling[z + 1] - fourier_sampling[z]) * cmath.pi / limit_sum for z in range(limit_sum)]
+def bessel_k(value_input, order):
+	limit_sum = 1000
+	absolute_order = abs(order)
+	e_i_theta = [cmath.cos(2 * cmath.pi * (z + 0.5) * value_input/ limit_sum) for z in range(limit_sum)]
+	if int(2 * absolute_order) == 2 * absolute_order:
+		if int(absolute_order) == absolute_order:
+			# integer order - using recurrence relation starting from K0 and K1 (from Basset's integral)
+			order_count = absolute_order
+			order_index = 0
+			current = [sum([x * y for x, y in zip(e_i_theta, basset_fourier_dirac_comb(z, limit_sum))]) for z in range(2)]
+		else:
+			# half-integer order - using recurrence relation starting from K(-0.5)=K0.5 and K0.5 (K0.5 from Basset's integral)
+			order_count = int(round(absolute_order + 0.5))
+			order_index = -0.25
+			current = [sum([x * y for x, y in zip(e_i_theta, basset_fourier_dirac_comb(0.5, limit_sum))]) for z in range(2)]
+		while order_count > 1:
+			mult = [1.0, 2.0 * (2 * order_index + 1) / value_input, 2.0 * (2 * order_index + 2) / value_input]
+			mult.append(1.0 + mult[1]*mult[2])
+			current = (lambda x,y: [mult[0] * x + mult[1] * y, mult[2] * x + mult[3] * y])(*current)
+			order_count = order_count - 2
+			order_index = order_index + 1
+		return current[order_count]
+	else:
+		# 2 * order is not integer, will try hard approximation directly from Basset's integral
+		return sum([cmath.pow(value_input / 2.0, -order) * x * y for x, y in zip(e_i_theta, basset_fourier_dirac_comb(order, limit_sum))])
 # kernel wrapper and wrapped kernels
 def kernel_wrapper(kernel_function, point0, point1, **kwargs): # if there is scaling, "axis_scale_list" must be a named input
 	assert len(point0) == len(point1)
@@ -182,25 +214,11 @@ def matern_kernel(value_input, **kernel_setup): # wrong residue approximation, c
 	assert absolute_order > 0
 	normalized_input = value_input * cmath.sqrt(2.0) / float(alpha)
 	if absolute_order > 8:
-		return squared_exponential_kernel(value_input)
+		return squared_exponential_kernel(value_input, alpha, cmath.pow(alpha * alpha * cmath.pi, 0.25))
 	elif absolute_order == 1:
 		return ornstein_uhlenbeck_kernel(value_input, alpha)
-	elif absolute_order < 1:
-		nearest_doublehalf = 1
-	elif absolute_order <= 2:
-		nearest_doublehalf = 3
 	else:
-		nearest_doublehalf = int(round(absolute_order - 0.5)) * 2 + 1 
-	noc = int((nearest_doublehalf - 1) / 2) # nearest_order_count
-	nearest_order = noc + 0.5
-	normalized_input = normalized_input * cmath.sqrt(nearest_order)
-	residue = min(abs(absolute_order - nearest_order), step) * (-1, 1)[absolute_order > nearest_order]
-	residue_mult = cmath.pow(normalized_input * cmath.exp(0.5 - digamma_approx(nearest_order) + 1.0/nearest_order + (1.0+nearest_order)/(1.0-nearest_order)), residue)
-	if abs(residue) < step:
-		matern_nearest_order = cmath.exp(0 - normalized_input) * factorial(noc)/factorial(noc * 2) * sum([factorial(noc + z) * cmath.pow(2 * normalized_input, noc - z) / (factorial(z) * factorial(noc - z)) for z in range(noc + 1)])
-	else:
-		matern_nearest_order = matern_kernel(absolute_order + (-1, 1)[residue < 0] * step, value_input, alpha, step)
-	return matern_nearest_order * residue_mult
+		return 2.0 * cmath.pow(normalized_input / 2.0, absolute_order) * bessel_k(normalized_input, absolute_order) / gamma_approx(absolute_order)
 # the penultimate function that uses the kernel functions above
 def data_torture_normal_approximation(x_list, y_list):
 	# for x \in R^d in x_list and its associated y = f(x) \in R in y_list,  
