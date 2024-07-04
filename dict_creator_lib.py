@@ -121,7 +121,7 @@ def bessel_k(value_input, order):
 	limit_sum = 1000
 	absolute_order = abs(order)
 	e_i_theta = [cmath.cos(2 * cmath.pi * (z + 0.5) * value_input/ limit_sum) for z in range(limit_sum)]
-	if int(2 * absolute_order) == 2 * absolute_order:
+	if int(2.0 * absolute_order) == 2.0 * absolute_order:
 		if int(absolute_order) == absolute_order:
 			# integer order - using recurrence relation starting from K0 and K1 (from Basset's integral)
 			order_count = absolute_order
@@ -163,10 +163,6 @@ def ou_kernel(value_input, **kernel_setup):
 #def matern_kernel(value_input, order, alpha, step=0.2):
 def matern_kernel(value_input, **kernel_setup):
 	assert not False in [keyword in kernel_setup for keyword in ["order", "alpha"]], [keyword for keyword in ["order", "alpha"] if not keyword in kernel_setup]
-	if "step" in kernel_setup:
-		step = float(kernel_setup["step"])
-	else:
-		step = 0.2
 	absolute_order = abs(kernel_setup["order"])
 	alpha = float(kernel_setup["alpha"])
 	assert absolute_order > 0
