@@ -69,10 +69,12 @@ def crossover(dict0, dict1, nu = 13, cr = 0.8, mr = 0.8, mm = 0.01, print_debug 
 	return ((dict0, dict2)[random.random() < cr], (dict1, dict3)[random.random() < cr])
 # kernel functions are mostly helpers for Bayesian optimization methods
 # value_input for kernel functions is stretched distance sum([alpha[z] * pow(x[z] - y[z], 2.0) for z in range(len(x))]) ** 0.5 of points x and y
-def squared_exponential_kernel(value_input, alpha):
-	return cmath.exp(0 - 2.0 * cmath.pow(value_input / (2.0 * alpha), 2))
-def ornstein_uhlenbeck_kernel(value_input, alpha):
-	return cmath.exp(0 - value_input / alpha)
+def power_exponential_kernel_func(value_input, alpha, gamma):
+	assert gamma > 0 and not gamma > 2
+	return cmath.exp(0 - cmath.pow(abs(value_input / alpha), gamma))
+def rational_quadratic_kernel_func(value_input, alpha, gamma):
+	assert alpha > 0 and gamma > 0
+	return cmath.pow(1 + 2.0 * cmath.pow(0.5 * value_input / alpha, 2) / gamma, 0 - gamma)
 def factorial(value_input):
 	assert type(value_input) == type(0) and not value_input < 0
 	result = 1
@@ -162,6 +164,10 @@ def bessel_k(raw_value_input, order):
 	return float(current[order_count])
 # kernel wrapper and wrapped kernels
 def kernel_wrapper(kernel_function, point0, point1, **kwargs): # if there is scaling, "axis_scale_list" must be a named input
+	# note: C. E. Rasmussen & C. K. I. Williams, "Gaussian Processes for Machine Learning", MIT Press, p.85, 2006
+	# in the above reference, l (length) is a positive parameter constantly re-occuring in its list of covariance functions
+	# due to initial work being based of works of Peter I. Frazier, "A Tutorial on Bayesian Optimization", arXiv, 2018:
+	# alpha is used in lieu of l (length), gamma is used in lieu of alpha
 	assert len(point0) == len(point1)
 	if "axis_scale_list" in kwargs:
 		as_list = kwargs["axis_scale_list"]
@@ -174,11 +180,16 @@ def kernel_wrapper(kernel_function, point0, point1, **kwargs): # if there is sca
 		return kernel_function(distance, **kwargs)
 def se_kernel(value_input, **kernel_setup):
 	assert not False in [keyword in kernel_setup for keyword in ["alpha"]], [keyword for keyword in ["alpha"] if not keyword in kernel_setup]
-	return squared_exponential_kernel(value_input, float(kernel_setup["alpha"]))
+	return power_exponential_kernel_func(value_input, cmath.sqrt(2.0) * float(kernel_setup["alpha"]), 2)
 def ou_kernel(value_input, **kernel_setup):
 	assert not False in [keyword in kernel_setup for keyword in ["alpha"]], [keyword for keyword in ["alpha"] if not keyword in kernel_setup]
-	return ornstein_uhlenbeck_kernel(value_input, float(kernel_setup["alpha"]))
-#def matern_kernel(value_input, order, alpha, step=0.2):
+	return power_exponential_kernel_func(value_input, float(kernel_setup["alpha"]), 1)
+def gamma_exp_kernel(value_input, **kernel_setup):
+	assert not False in [keyword in kernel_setup for keyword in ["gamma", "alpha"]], [keyword for keyword in ["gamma", "alpha"] if not keyword in kernel_setup]
+	return power_exponential_kernel_func(value_input, float(kernel_setup["alpha"]), float(kernel_setup["gamma"]))
+def rq_kernel(value_input, **kernel_setup):
+	assert not False in [keyword in kernel_setup for keyword in ["gamma", "alpha"]], [keyword for keyword in ["gamma", "alpha"] if not keyword in kernel_setup]
+	return rational_quadratic_kernel_func(value_input, float(kernel_setup["alpha"]), float(kernel_setup["gamma"]))
 def matern_kernel(value_input, **kernel_setup):
 	assert not False in [keyword in kernel_setup for keyword in ["order", "alpha"]], [keyword for keyword in ["order", "alpha"] if not keyword in kernel_setup]
 	absolute_order = abs(float(kernel_setup["order"]))
@@ -186,7 +197,7 @@ def matern_kernel(value_input, **kernel_setup):
 	assert absolute_order > 0
 	normalized_input = float(value_input) * cmath.sqrt(2.0) / float(alpha)
 	if absolute_order > 4: # value of 4 = ceil(3.5) came from C. E. Rasmussen & C. K. I. Williams, "Gaussian Processes for Machine Learning", MIT Press, p.85, 2006
-		return squared_exponential_kernel(float(value_input), alpha)
+		return power_exponential_kernel_func(value_input, cmath.sqrt(2.0) * float(kernel_setup["alpha"], 2))
 	else:
 		return 2.0 * cmath.pow(normalized_input / 2.0, absolute_order) * bessel_k(normalized_input, absolute_order) / gamma_approx(absolute_order)
 # the penultimate function that uses the kernel functions above
