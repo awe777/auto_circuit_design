@@ -69,6 +69,7 @@ def crossover(dict0, dict1, nu = 13, cr = 0.8, mr = 0.8, mm = 0.01, print_debug 
 	return ((dict0, dict2)[random.random() < cr], (dict1, dict3)[random.random() < cr])
 # kernel functions are mostly helpers for Bayesian optimization methods
 # value_input for kernel functions is stretched distance sum([alpha[z] * pow(x[z] - y[z], 2.0) for z in range(len(x))]) ** 0.5 of points x and y
+"""
 def power_exponential_kernel_func(value_input, alpha, gamma):
 	assert gamma > 0 and not gamma > 2
 	return cmath.exp(0 - cmath.pow(abs(value_input / alpha), gamma))
@@ -207,7 +208,7 @@ def data_torture_normal_approximation(x_list, y_list):
 	# returns a list of (mu, sigma, chance)
 	list_of_tuples = []
 	return list_of_tuples
-
+"""
 # actual machine-learning functions
 def create(length, full_random = False, context=context_builder()):
 	assert type(int(length)) == type(0)
@@ -552,7 +553,9 @@ def regenerate_ga(length, outlist, context=context_builder(), use_prev = False):
 			fill = fill + 2
 	with open(curdir_file_win("dict.pickle"), "wb") as dest:
 		pickle.dump(nextbatch, dest, 0)
+"""
 def regenerate_bo(length, outlist, context=context_builder()):
 	assert type(int(length)) == type(0)
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
 	var_list = sorted(list(original))
+"""
