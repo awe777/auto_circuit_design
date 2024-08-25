@@ -2,18 +2,24 @@ import sys, pickle, dict_creator_lib
 # import random
 basedir = dict_creator_lib.curdir_file_win()
 
-var_list = ["vref_op_pch3_w", "vref_op_pch3_l", "vref_op_pch3_m", "vref_op_nch_w", "vref_op_nch_l", "vref_op_nch_m", "vref_op_stg2_w", "vref_op_stg2_m", "vref_op_stg2_l", "vref_op_join_l", "vref_op_outn_l", "vref_op_out3_l", "stage0_pch_w", "stage0_pch_l", "stage0_pch_m", "op1_stack0_w", "op1_stack0_l", "op1_stack0_m", "op1_stack1_w", "op1_stack1_l", "op1_stack1_m", "op1_join_w", "op1_join_l", "op1_join_m", "op2_input_w", "op2_input_l", "op2_input_m", "op2_base_w", "op2_base_l", "op2_base_m", "res_rr0_w", "res_rr0_l", "res_rr0_m", "res_rr1_w", "res_rr1_l", "res_rr1_m", "res_rr3_w", "res_rr3_l", "res_rr3_m", "res_rr5_w", "res_rr5_l", "res_rr5_m", "psrr_stabilizer_w", "psrr_stabilizer_l", "psrr_stabilizer_m"]
-original = dict(map(lambda k, v: (k, v), var_list, [4, 8, 2, 1, 18.4, 2, 2.5, 4, 18.75, 15.1, 20, 15, 50, 20, 1, 25, 20, 8, 12.5, 5, 8, 0.6, 20, 2, 1, 8.5, 8, 1.5, 3, 4, 1, 20, 1, 1, 20, 1, 1, 20, 1, 1, 20, 1, 8.65, 13.4, 8]))
+var_list = ["op1_stage1_pmos_w","op1_stage1_pmos_l","op1_stage1_pmos_m","op1_stage1_nmos_w","op1_stage1_nmos_l","op1_stage1_nmos_m","op1_stage2_nmos_w","op1_stage2_nmos_l","op1_stage2_nmos_m","op1_vref_nmos_w","op1_vref_nmos_l","op1_vref_nmos_m","op1_vref_pmos_w","op1_vref_pmos_l","op1_vref_pmos_m","op1_stage2_pmos_w","op1_stage2_pmos_l","op1_stage2_pmos_m","psrr_stabilizer_w","psrr_stabilizer_l","psrr_stabilizer_m","res_rr0_w","res_rr0_l","res_rr0_m","res_rr2_w","res_rr2_l","res_rr2_m"]
+original = dict(map(lambda k, v: (k, v), var_list, [10,18,4,12,1,8,8,1,4,14,8,4,5,8,4,8,4,8,2.75,4,8,1,14,1,1,8.55,2]))
 original_unit = dict([(key, (0.025, 1)[key.endswith("m")]) for key in var_list])
-original_min = dict([(key, ((1, 5)[key.endswith("ratio")], 0.35 + (0, -0.13)[key.endswith("w")])[key.endswith("w") or key.endswith("l")]) for key in var_list])
-original_max = dict([(key, (10, 500)[key.endswith("w")]) for key in var_list])
-
+original_min = dict([(key, ((1, 5)[key.endswith("ratio")], 0.18 + (0, 0.04)[key.endswith("w")])[key.endswith("w") or key.endswith("l")]) for key in var_list])
+original_max = dict([(key, (20, 25)[key.endswith("w")]) for key in var_list])
 assert(len(var_list) == len(original))
 for x in [original_unit, original_min, original_max]:
 	assert(len(original) == len(x))
 random_spread = 0.4
 
-current_context = dict([(context_keys, locals()[context_keys]) for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
+#current_context = dict([(context_keys, locals()[context_keys]) for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
+current_context = {}
+current_context["original"] = original
+current_context["original_unit"] = original_unit
+current_context["original_min"] = original_min
+current_context["original_max"] = original_max
+current_context["random_spread"] = random_spread
+
 def file_exists(path):
 	try:
 		with open(path, "rb") as source:
@@ -34,10 +40,8 @@ floatval = 0
 if check[0]:
 	if len(check[1]) == 0:
 		dict_creator_lib.log_write("warning: outlist list is empty")
-	dict_creator_lib.log_write("dictionary creator - PSO")
-	dict_creator_lib.regenerate_pso(sys.argv[1], check[1], floatval, 2, 2, current_context) 
-	# initial idea of w = (1 - cycle/max_cycle) * (0.9 - 0.4) + 0.4, phi_p = phi_g = 2 comes from PSO-LDIW as written by X. L. Wang et al., "A High-Efficiency Design Method of TSV Array for Thermal Management of 3-D Integrated System", TCAD 2023
-	# end up unused
+	dict_creator_lib.log_write("dictionary creator - CMA-ES")
+	dict_creator_lib.regenerate_cma_es(sys.argv[1], check[1], current_context)
 else:
 	if boolval:
 		dict_creator_lib.log_write("dictionary creator - random - does not use base value - trigger: " + str(sys.argv[2:]))

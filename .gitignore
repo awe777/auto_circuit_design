@@ -7,3 +7,4 @@
 *.sp
 *.env
 .venv
+run*.py

@@ -1,9 +1,6 @@
-import os, random, pickle, time, cmath
-# this is the start of my declaration of defeat (i.e. using Numpy)
+import os, random, pickle, time, math, cmath
 import numpy as np
 from numpy import linalg as npLA
-# this is my penultimate declaration of defeat (i.e. using other's libraries)
-
 def context_builder(var_list_dicttuple = {}, rspread = 0.4):
 	tuple_list = [('random_spread', rspread)]
 	tuple_list = tuple_list + [(context_keys, dict([(key, var_list_dicttuple[z]) for key in var_list_dicttuple])) for z, context_keys in enumerate(["original", "original_unit", "original_min", "original_max"])]
@@ -24,11 +21,11 @@ def std(inputlist, avg_init=None):
 		avg_ = avg(inputlist)
 	else:
 		avg_ = avg_init
-	return cmath.pow(avg([float(x - avg_) * float(x - avg_) for x in inputlist]), 0.5)
+	return math.pow(avg([float(x - avg_) * float(x - avg_) for x in inputlist]), 0.5)
 def normal_2():
 	base = [1 - random.random(), random.random()]
 	out = cmath.rect(cmath.sqrt(2 * cmath.log(1/base[0])), 2 * cmath.pi * base[1])
-	return (out.real, out.imag) 
+	return (float(out.real), float(out.imag)) 
     # returns 2 samples from normal distribution
 	# can be deprecated given random.gauss(0, 1) exists, but can be useful in airgapped systems
 def getsingle(fomlist):
@@ -58,7 +55,7 @@ def crossover(dict0, dict1, nu = 13, cr = 0.8, mr = 0.8, mm = 0.01, print_debug 
 		log_write("mutation rate: " + str(mr * 100) + "%")
 		log_write("mutation multiplier: " + str(mm))
 	rand = random.random()
-	beta = cmath.pow((2 * rand, 0.5 / (1 - rand))[rand > 0.5], 1 / (nu + 1))
+	beta = math.pow((2 * rand, 0.5 / (1 - rand))[rand > 0.5], 1 / (nu + 1))
 	dict2 = {}
 	dict3 = {}
 	for key in [x for x in list(dict0) if x != "title"]:
@@ -75,10 +72,10 @@ def crossover(dict0, dict1, nu = 13, cr = 0.8, mr = 0.8, mm = 0.01, print_debug 
 """
 def power_exponential_kernel_func(value_input, alpha, gamma):
 	assert gamma > 0 and not gamma > 2
-	return cmath.exp(0 - cmath.pow(abs(value_input / alpha), gamma))
+	return math.exp(0 - math.pow(abs(value_input / alpha), gamma))
 def rational_quadratic_kernel_func(value_input, alpha, gamma):
 	assert alpha > 0 and gamma > 0
-	return cmath.pow(1 + 2.0 * cmath.pow(0.5 * value_input / alpha, 2) / gamma, 0 - gamma)
+	return math.pow(1 + 2.0 * math.pow(0.5 * value_input / alpha, 2) / gamma, 0 - gamma)
 def factorial(value_input):
 	assert type(value_input) == type(0) and not value_input < 0
 	result = 1
@@ -92,7 +89,7 @@ def gamma_approx(value_input):
 		return factorial(value_input - 1)
 	elif int(2.0 * value_input) == 2.0 * value_input and value_input > 0:
 		count = int(value_input)
-		result = cmath.sqrt(cmath.pi)
+		result = math.sqrt(math.pi)
 		for z in range(count):
 			result = result * (z + 0.5)
 		return result
@@ -102,13 +99,13 @@ def gamma_approx(value_input):
 	else:
 		# Stirling approximation for (50, inf)
 		stirling_value = value_input
-		result = cmath.sqrt(2 * cmath.pi * stirling_value) * cmath.pow(stirling_value / cmath.e, stirling_value) * sum([cmath.pow(stirling_value, -float(z)) / float(x) for z, x in enumerate([1, 12, 288, -372.95, -4357.83])])
+		result = math.sqrt(2 * math.pi * stirling_value) * math.pow(stirling_value / math.e, stirling_value) * sum([math.pow(stirling_value, -float(z)) / float(x) for z, x in enumerate([1, 12, 288, -372.95, -4357.83])])
 		return result
 def digamma_approx(value_input):
 	assert type(value_input) != type(0) or value_input > 0
 	dx = 0.05
-	lower_bound = cmath.log(value_input) - 1.0/value_input
-	upper_bound = cmath.log(value_input) - 0.5/value_input
+	lower_bound = math.log(value_input) - 1.0/value_input
+	upper_bound = math.log(value_input) - 0.5/value_input
 	derivative = (gamma_approx(value_input + dx) - gamma_approx(value_input))/dx
 	lower_diff = abs(derivative/gamma_approx(value_input) - lower_bound)
 	upper_diff = abs(derivative/gamma_approx(value_input) - upper_bound)
@@ -121,12 +118,12 @@ def basset_fourier_dirac_comb(order, limit_sum):
 	# for order v > -1/2, x > 0:
 	# (x/2)^v * K_v(x) = gamma(v + 0.5) / gamma(0.5) * \int_0^\infty cos(xt)/(1+t^2)^(v+1/2) dt
 	assert limit_sum > 0
-	fourier_sampling = [gamma_approx(order + 0.5)*cmath.pow(1 + cmath.pow(z / float(limit_sum), 2), -0.5 - order)/cmath.sqrt(cmath.pi) for z in range(limit_sum + 1)]
+	fourier_sampling = [gamma_approx(order + 0.5)*math.pow(1 + math.pow(z / float(limit_sum), 2), -0.5 - order)/math.sqrt(math.pi) for z in range(limit_sum + 1)]
 	return [(fourier_sampling[z + 1] - fourier_sampling[z]) * 0.5 / limit_sum for z in range(limit_sum)]
 # def bessel_k_old(value_input, order):
 # 	limit_sum = 1000
 # 	absolute_order = abs(order)
-# 	e_i_theta = [cmath.cos(2 * cmath.pi * (z + 0.5) * value_input/ limit_sum) for z in range(limit_sum)]
+# 	e_i_theta = [math.cos(2 * math.pi * (z + 0.5) * value_input/ limit_sum) for z in range(limit_sum)]
 # 	if int(2.0 * absolute_order) == 2.0 * absolute_order:
 # 		if int(absolute_order) == absolute_order:
 # 			# integer order - using recurrence relation starting from K0 and K1 (from Basset's integral)
@@ -147,11 +144,11 @@ def basset_fourier_dirac_comb(order, limit_sum):
 # 		return current[order_count]
 # 	else:
 # 		# 2 * order is not integer, will try hard approximation directly from Basset's integral
-# 		return sum([cmath.pow(value_input / 2.0, -order) * x * y for x, y in zip(e_i_theta, basset_fourier_dirac_comb(order, limit_sum))])
+# 		return sum([math.pow(value_input / 2.0, -order) * x * y for x, y in zip(e_i_theta, basset_fourier_dirac_comb(order, limit_sum))])
 def bessel_k(raw_value_input, order):
 	value_input = float(raw_value_input)
 	limit_sum = 1000
-	e_i_theta = [cmath.cos(2 * cmath.pi * (z + 0.5) * value_input / limit_sum) for z in range(limit_sum)]
+	e_i_theta = [math.cos(2 * math.pi * (z + 0.5) * value_input / limit_sum) for z in range(limit_sum)]
 	absolute_order = abs(float(order))
 	order_count = int(absolute_order) + int(absolute_order > int(absolute_order)) # functionally, this is ceil(absolute_order)
 	# if order_count is odd, the requested value will be outputted by current[order_count] when order_count has been reduced to 1
@@ -177,14 +174,14 @@ def kernel_wrapper(kernel_function, point0, point1, **kwargs): # if there is sca
 		as_list = kwargs["axis_scale_list"]
 	else:
 		as_list = [1 for x in point0]
-	distance = cmath.pow(sum([abs(m * (x - y)) ** 2 for m, x, y in zip(as_list, point0, point1)]), 0.5)
+	distance = math.pow(sum([abs(m * (x - y)) ** 2 for m, x, y in zip(as_list, point0, point1)]), 0.5)
 	if distance == 0:
 		return 0
 	else:
 		return kernel_function(distance, **kwargs)
 def se_kernel(value_input, **kernel_setup):
 	assert not False in [keyword in kernel_setup for keyword in ["alpha"]], [keyword for keyword in ["alpha"] if not keyword in kernel_setup]
-	return power_exponential_kernel_func(value_input, cmath.sqrt(2.0) * float(kernel_setup["alpha"]), 2)
+	return power_exponential_kernel_func(value_input, math.sqrt(2.0) * float(kernel_setup["alpha"]), 2)
 def ou_kernel(value_input, **kernel_setup):
 	assert not False in [keyword in kernel_setup for keyword in ["alpha"]], [keyword for keyword in ["alpha"] if not keyword in kernel_setup]
 	return power_exponential_kernel_func(value_input, float(kernel_setup["alpha"]), 1)
@@ -199,11 +196,11 @@ def matern_kernel(value_input, **kernel_setup):
 	absolute_order = abs(float(kernel_setup["order"]))
 	alpha = float(kernel_setup["alpha"])
 	assert absolute_order > 0
-	normalized_input = float(value_input) * cmath.sqrt(2.0) / float(alpha)
+	normalized_input = float(value_input) * math.sqrt(2.0) / float(alpha)
 	if absolute_order > 4: # value of 4 = ceil(3.5) came from C. E. Rasmussen & C. K. I. Williams, "Gaussian Processes for Machine Learning", MIT Press, p.85, 2006
-		return power_exponential_kernel_func(value_input, cmath.sqrt(2.0) * float(kernel_setup["alpha"], 2))
+		return power_exponential_kernel_func(value_input, math.sqrt(2.0) * float(kernel_setup["alpha"], 2))
 	else:
-		return 2.0 * cmath.pow(normalized_input / 2.0, absolute_order) * bessel_k(normalized_input, absolute_order) / gamma_approx(absolute_order)
+		return 2.0 * math.pow(normalized_input / 2.0, absolute_order) * bessel_k(normalized_input, absolute_order) / gamma_approx(absolute_order)
 # the penultimate function that uses the kernel functions above
 def data_torture_normal_approximation(x_list, y_list):
 	# for x \in R^d in x_list and its associated y = f(x) \in R in y_list,  
@@ -228,9 +225,9 @@ def create(length, full_random = False, context=context_builder()):
 		for key in list(original):
 			assert(original[key] != None)
 			if randomized:
-				value = round(int(round(original_max[key] * random.random() / original_unit[key])) * original_unit[key], max(0, 0 - int(cmath.log10(original_unit[key]))))
+				value = round(int(round(original_max[key] * random.random() / original_unit[key])) * original_unit[key], max(0, 0 - int(math.log10(original_unit[key]))))
 			else:
-				value = round(int(original[key] * (1 - (0, random_spread)[index > 0] + 2 * (0, random_spread)[index > 0] * random.random()) / original_unit[key]) * original_unit[key], max(0, 0 - int(cmath.log10(original_unit[key]))))
+				value = round(int(original[key] * (1 - (0, random_spread)[index > 0] + 2 * (0, random_spread)[index > 0] * random.random()) / original_unit[key]) * original_unit[key], max(0, 0 - int(math.log10(original_unit[key]))))
 			if original_min[key] is not None:
 				value = (original_min[key], value)[value > original_min[key]]
 			if original_max[key] is not None:
@@ -250,9 +247,10 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 	# a_cov is usually set to 2, setting less than 2 could be useful in noisy functions
 	# c_m is usually set to 1, setting less than 1 could be useful in noisy functions
 	ndim = len(var_list)
-	num = min(4 + int(3 * cmath.log(ndim)), len(outlist))
+	num = min(4 + int(3 * math.log(ndim)), len(outlist))
 	if force_length:
 		num = max(int(length), num)
+	log_write("DEBUG: sample size is set to " + str(num))
 	var_list_ordered = sorted(var_list)
 	sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=True)
 	make_new = force_reset
@@ -265,9 +263,9 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 		make_new = True
 		
-	enoi = cmath.sqrt(2) * cmath.gamma((1 + ndim)/2) / cmath.gamma(ndim/2) 
-	# cmath.gamma() is introduced in 3.2, approximation is sqrt(n) * (1 - (4n)^-1 + (21n^2)^-1)
-	raw_weight = [cmath.log((1 + num)/ 2) - cmath.log(1 + z) for z in range(num)]
+	enoi = math.sqrt(2) * math.gamma((1 + ndim)/2) / math.gamma(ndim/2) 
+	# math.gamma() is introduced in 3.2, approximation is sqrt(n) * (1 - (4n)^-1 + (21n^2)^-1)
+	raw_weight = [math.log((1 + num)/ 2) - math.log(1 + z) for z in range(num)]
 	mark = len([w for w in raw_weight if w >= 0])
 	sum_w_pos = sum(raw_weight[:mark])
 	sum_w_neg = -sum(raw_weight[mark:])
@@ -277,7 +275,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 	c_cov = (4 + mu_eff_pos/ndim) / (ndim + 4 + 2 * mu_eff_pos/ndim)
 	c_mu = min(1 - c_1, a_cov * (mu_eff_pos + 1 / mu_eff_pos - 1.75) / ((ndim + 2) ** 2 + a_cov * mu_eff_pos / 2))
 	c_sigma = (mu_eff_pos + 2) / (ndim + mu_eff_pos + 5)
-	d_sigma = 1 + max(0, cmath.pow((mu_eff_pos - 1) / (ndim + 1), 0.5) - 1) + c_sigma
+	d_sigma = 1 + max(0, math.pow((mu_eff_pos - 1) / (ndim + 1), 0.5) - 1) + c_sigma
 	alpha_mu = 1 + c_1/c_mu
 	alpha_mueff = 1 + 2 * mu_eff_neg / (mu_eff_pos + 2)
 	alpha_pdef = (1 - c_1 - c_mu) / (ndim * c_mu)
@@ -286,7 +284,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 	if make_new:
 		mean = [avg([entry[1][key] for entry in sorted_outlist]) for key in var_list_ordered]
 		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) / 3.0
-		cov_mat = [[cmath.pow((0, avg([entry[1][var_list_ordered[row]] for entry in sorted_outlist]) / step_sigma)[row == col], 2) for col in range(ndim)] for row in range(ndim)]
+		cov_mat = [[math.pow((0, avg([entry[1][var_list_ordered[row]] for entry in sorted_outlist]) / step_sigma)[row == col], 2) for col in range(ndim)] for row in range(ndim)]
 		p_sigma = [0 for z in range(ndim)]
 		p_cov = [0 for z in range(ndim)]
 		gen_count = 0
@@ -385,10 +383,10 @@ def regenerate_pso(length, outlist, w, phi_p = 2, phi_g = 2, context=context_bui
 			stdev = std(values, average)
 			z_values = [int(stdev != 0) * (value - average)/(1, stdev)[stdev != 0] for value in values]
 			best_index = list(vb_dict).index(vb_best_key)
-			f_evol.append(2 * cmath.atan(max(abs(max(z_values) - z_values[best_index]), abs(z_values[best_index] - min(z_values)))) / cmath.pi)
+			f_evol.append(2 * math.atan(max(abs(max(z_values) - z_values[best_index]), abs(z_values[best_index] - min(z_values)))) / math.pi)
 			# f_evol = 2/pi * atan(max Z-distance from best), 0 <= f_evol < 1, inspired from Zhan's constant (d_g - d_min)/(d_max - d_min)
-		w_adj = [cmath.pow(1 + 1.5 * cmath.pow(13.5, 0 - f_e), -1) for f_e in f_evol] # 0.4 <= w <= 0.9, directly from Zhan's paper
-		# w_adj = [w + (cmath.pow(1 + 1.5 * cmath.pow(13.5, 0 - f_evol[z]), -1) - w) * random.random() for z, key in enumerate(var_list)] # 0.4 <= w <= 0.9
+		w_adj = [math.pow(1 + 1.5 * math.pow(13.5, 0 - f_e), -1) for f_e in f_evol] # 0.4 <= w <= 0.9, directly from Zhan's paper
+		# w_adj = [w + (math.pow(1 + 1.5 * math.pow(13.5, 0 - f_evol[z]), -1) - w) * random.random() for z, key in enumerate(var_list)] # 0.4 <= w <= 0.9
 		s0 = [max(1, min(0, min(8 - 10 * f_e, 5 * f_e - 2))) for f_e in f_evol]	# exploration
 		s1 = [max(1, min(0, min(3 - 5 * f_e, 10 * f_e - 2))) for f_e in f_evol]	# exploiation
 		s2 = [max(1, min(0, 1.5 - 5 * f_e)) for f_e in f_evol]					# convergence
@@ -535,7 +533,7 @@ def regenerate_ga(length, outlist, context=context_builder(), use_prev = False):
 			selected = childs[(0, 1)[random.random() >= 0.5]]
 			nextbatch['title'].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
 			for key in [sel_key for sel_key in selected if sel_key != "title"]:
-				value = round(int(round(selected[key] / original_unit[key])) * original_unit[key], max(0, 0 - int(cmath.log10(original_unit[key]))))
+				value = round(int(round(selected[key] / original_unit[key])) * original_unit[key], max(0, 0 - int(math.log10(original_unit[key]))))
 				if original_min[key] is not None:
 					value = (original_min[key], value)[value > original_min[key]]
 				if original_max[key] is not None:
@@ -547,7 +545,7 @@ def regenerate_ga(length, outlist, context=context_builder(), use_prev = False):
 			for selected in childs:
 				nextbatch['title'].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
 				for key in [sel_key for sel_key in selected if sel_key != "title"]:
-					value = round(int(round(selected[key] / original_unit[key])) * original_unit[key], max(0, 0 - int(cmath.log10(original_unit[key]))))
+					value = round(int(round(selected[key] / original_unit[key])) * original_unit[key], max(0, 0 - int(math.log10(original_unit[key]))))
 					if original_min[key] is not None:
 						value = (original_min[key], value)[value > original_min[key]]
 					if original_max[key] is not None:
