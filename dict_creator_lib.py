@@ -220,7 +220,7 @@ def create(length, full_random = False, context=context_builder()):
 		dictpickle[key] = []
 	for index in range(int(length)):
 		title = "sim_" + str(int(time.time() * 1e6))
-		randomized = full_random or (random.random() < 0.2 and index > 0)
+		randomized = (index > 0) and (random.random() < 0.2 or full_random)
 		if randomized and not full_random:
 			count = count + 1
 		for key in list(original):
