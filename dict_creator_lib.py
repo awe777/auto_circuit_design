@@ -241,6 +241,7 @@ def create(length, full_random = False, context=context_builder()):
 		pickle.dump(dictpickle, dest, 0)
 def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=False, force_length=False, a_cov=2, c_m=1):
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
+	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
 	var_list = sorted(list(original))
 	# outlist is a list of [FoM, dict([(key in var_list + ["title"], value)])]
