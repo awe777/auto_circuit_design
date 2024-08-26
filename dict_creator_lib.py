@@ -1,5 +1,6 @@
 import os, random, pickle, time, math, cmath
 import numpy as np
+import purecma as pcma
 from numpy import linalg as npLA
 def context_builder(var_list_dicttuple = {}, rspread = 0.4):
 	tuple_list = [('random_spread', rspread)]
@@ -242,8 +243,24 @@ def create(length, full_random = False, context=context_builder()):
 def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=False, force_length=False, a_cov=2, c_m=1):
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
+	# note to self: pickling the ES object is possible: https://github.com/CMA-ES/pycma/issues/126
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
 	var_list = sorted(list(original))
+	try:
+		with open(curdir_file_win("cma_es_param.pickle"), "rb") as cma_obj_source:
+			es = pickle.load(cma_obj_source)
+			assert type(es) == pcma.CMAES
+	except OSError as err:
+		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
+		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
+		es = pcma.CMAES([original[key] for key in var_list], 0.5)
+	es_x = []
+	es_y = []
+	for output in sorted(outlist, key=lambda x: x[0], reverse=True):
+		es_x.append([output[1][key] for key in var_list])
+		es_y.append(abs(1.0/output[0]))
+	es.tell(es_x, es_y)
+	'''
 	# outlist is a list of [FoM, dict([(key in var_list + ["title"], value)])]
 	# a_cov is usually set to 2, setting less than 2 could be useful in noisy functions
 	# c_m is usually set to 1, setting less than 1 could be useful in noisy functions
@@ -314,10 +331,12 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 		pickle.dump((mean.tolist(), float(step_sigma), cov_mat.tolist(), p_sigma.tolist(), p_cov.tolist(), int(gen_count)), dest, 0)
 	
 	cov_eigen_lam, cov_eigen_vec = npLA.eig(np.array(cov_mat))
+	'''
 	nextbatch = dict([(key, []) for key in var_list + ["title"]])
-	for z in range(num):
-		generated = mean + step_sigma * (cov_eigen_vec @ np.diag(np.sqrt(cov_eigen_lam)) @ np.array([random.gauss(0, 1) for key in var_list]))
-		for z0, key in enumerate(var_list_ordered):
+	#for z in range(num):
+		#generated = mean + step_sigma * (cov_eigen_vec @ np.diag(np.sqrt(cov_eigen_lam)) @ np.array([random.gauss(0, 1) for key in var_list]))
+	for generated in es.ask():
+		for z0, key in enumerate(var_list):
 			value = float(generated[z0])
 			if original_unit[key] is not None:
 				value = int(round(value / original_unit[key])) * original_unit[key]
@@ -327,6 +346,8 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 				value = (value, original_max[key])[value > original_max[key]]
 			nextbatch[key].append(value)
 		nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
+	with open(curdir_file_win("cma_es_param.pickle"), "wb") as cma_obj_source:
+		pickle.dump(es, cma_obj_source, 0)
 	with open(curdir_file_win("dict.pickle"), "wb") as dest:
 		pickle.dump(nextbatch, dest, 0)
 def regenerate_pso(length, outlist, w, phi_p = 2, phi_g = 2, context=context_builder(), force_ignore_vb_dict=False):
