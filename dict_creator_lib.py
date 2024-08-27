@@ -240,16 +240,21 @@ def create(length, full_random = False, context=context_builder()):
 		log_write("".join([str(x) for x in ["DEBUG: ", count, " of ", length, " is fully randomized"]]))
 	with open(curdir_file_win("dict.pickle") , "wb") as dest:
 		pickle.dump(dictpickle, dest, 0)
-def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=False, force_length=False, a_cov=2, c_m=1):
+def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=False):
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
 	# note to self: pickling the ES object is possible: https://github.com/CMA-ES/pycma/issues/126
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
 	var_list = sorted(list(original))
 	try:
-		with open(curdir_file_win("cma_es_param.pickle"), "rb") as cma_obj_source:
-			es = pickle.load(cma_obj_source)
-			assert type(es) == pcma.CMAES
+		if not force_reset:
+			with open(curdir_file_win("cma_es_param.pickle"), "rb") as cma_obj_source:
+				es = pickle.load(cma_obj_source)
+				assert type(es) == pcma.CMAES
+		else:
+			log_write("force reset enabled")
+			log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
+			es = pcma.CMAES([original[key] for key in var_list], 0.5)
 	except OSError as err:
 		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
@@ -332,10 +337,13 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 	
 	cov_eigen_lam, cov_eigen_vec = npLA.eig(np.array(cov_mat))
 	'''
+	es_ask = list(es.ask())
+	while len(es_ask) < length:
+		es_ask = es_ask + list(es.ask())
 	nextbatch = dict([(key, []) for key in var_list + ["title"]])
 	#for z in range(num):
 		#generated = mean + step_sigma * (cov_eigen_vec @ np.diag(np.sqrt(cov_eigen_lam)) @ np.array([random.gauss(0, 1) for key in var_list]))
-	for generated in es.ask():
+	for generated in es_ask:
 		for z0, key in enumerate(var_list):
 			value = float(generated[z0])
 			if original_unit[key] is not None:
