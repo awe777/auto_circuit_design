@@ -246,6 +246,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 	# note to self: pickling the ES object is possible: https://github.com/CMA-ES/pycma/issues/126
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
 	var_list = sorted(list(original))
+	num = int(length)
 	try:
 		if not force_reset:
 			with open(curdir_file_win("cma_es_param.pickle"), "rb") as cma_obj_source:
@@ -338,7 +339,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 	cov_eigen_lam, cov_eigen_vec = npLA.eig(np.array(cov_mat))
 	'''
 	es_ask = list(es.ask())
-	while len(es_ask) < length:
+	while len(es_ask) < num:
 		es_ask = es_ask + list(es.ask())
 	nextbatch = dict([(key, []) for key in var_list + ["title"]])
 	#for z in range(num):
