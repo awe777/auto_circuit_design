@@ -240,6 +240,46 @@ def create(length, full_random = False, context=context_builder()):
 		log_write("".join([str(x) for x in ["DEBUG: ", count, " of ", length, " is fully randomized"]]))
 	with open(curdir_file_win("dict.pickle") , "wb") as dest:
 		pickle.dump(dictpickle, dest, 0)
+def cma_es_helper(es, outlist, var_list, tell_limit):
+	es_x = []
+	es_y = []
+	entry_added = False
+	try:
+		for output in sorted(outlist, key=lambda x: x[0], reverse=True):
+			if output[0] > 1:
+				try:
+					es_y.append(abs(1.0/output[0]))
+					#es_y.append(1.0/abs(math.log(output[0])))
+					es_x.append([output[1][key] for key in var_list])
+				except Exception:
+					es_x, es_y = (lambda esx, esy: (list(esx), list(esy)))(zip(*zip(es_x, es_y)))
+			if len(es_y) == tell_limit:
+				es.tell(es_x, es_y) # tell MUST be equal to es.params.mu
+				es_x = []
+				es_y = []
+				entry_added = True
+		if len(es_y) > 0:
+			if len(es_y) < tell_limit:
+				for output in sorted(outlist, key=lambda x: x[0], reverse=True):
+					if output[0] > 1 and len(es_y) < tell_limit:
+						try:
+							es_y.append(abs(1.0/output[0]))
+							#es_y.append(1.0/abs(math.log(output[0])))
+							es_x.append([output[1][key] for key in var_list])
+						except Exception:
+							es_x, es_y = (lambda esx, esy: (list(esx), list(esy)))(zip(*zip(es_x, es_y)))
+			if len(es_y) == tell_limit:
+				es.tell(es_x, es_y)
+				es_x = []
+				es_y = []
+				entry_added = True
+	except Exception as err:
+		if not entry_added:
+			log_write("error during telling sequence with no successful tells: " + str(tell_limit))
+			raise
+		else:
+			log_write("error during telling sequence with at least 1 successful tell")
+			log_write("error details: " + str(err))
 def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=False):
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
@@ -259,13 +299,14 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 	except OSError as err:
 		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
+		#es = pcma.CMAES([original[key] for key in var_list], 0.5, 2 * len(var_list))
 		es = pcma.CMAES([original[key] for key in var_list], 0.5)
-	es_x = []
-	es_y = []
-	for output in sorted(outlist, key=lambda x: x[0], reverse=True):
-		es_x.append([output[1][key] for key in var_list])
-		es_y.append(abs(1.0/output[0]))
-	es.tell(es_x, es_y)
+
+	try:
+		cma_es_helper(es, outlist, var_list, len(es.params.weights))
+	except Exception as err:
+		log_write("retrying with es.params.mu")
+		cma_es_helper(es, outlist, var_list, es.params.mu)
 	'''
 	# outlist is a list of [FoM, dict([(key in var_list + ["title"], value)])]
 	# a_cov is usually set to 2, setting less than 2 could be useful in noisy functions
@@ -341,6 +382,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 	es_ask = list(es.ask())
 	while len(es_ask) < num:
 		es_ask = es_ask + list(es.ask())
+	log_write("DEBUG: # of entries in es_ask:\t" + str(len(es_ask)))
 	nextbatch = dict([(key, []) for key in var_list + ["title"]])
 	#for z in range(num):
 		#generated = mean + step_sigma * (cov_eigen_vec @ np.diag(np.sqrt(cov_eigen_lam)) @ np.array([random.gauss(0, 1) for key in var_list]))
@@ -357,8 +399,10 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 		nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
 	with open(curdir_file_win("cma_es_param.pickle"), "wb") as cma_obj_source:
 		pickle.dump(es, cma_obj_source, 0)
+		log_write("DEBUG: successful write to " + curdir_file_win("cma_es_param.pickle"))
 	with open(curdir_file_win("dict.pickle"), "wb") as dest:
 		pickle.dump(nextbatch, dest, 0)
+		log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
 def regenerate_pso(length, outlist, w, phi_p = 2, phi_g = 2, context=context_builder(), force_ignore_vb_dict=False):
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
 	var_list = sorted(list(original))

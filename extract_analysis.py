@@ -233,6 +233,7 @@ if True:
 				dict_114[alter][partialkey + "w"] = dict_114[alter][partialkey + "width"]
 				dict_114[alter][partialkey + "l"] = str(conv_l)
 	var_list = ["op1_stage1_pmos_w","op1_stage1_pmos_l","op1_stage1_pmos_m","op1_stage1_nmos_w","op1_stage1_nmos_l","op1_stage1_nmos_m","op1_stage2_nmos_w","op1_stage2_nmos_l","op1_stage2_nmos_m","op1_vref_nmos_w","op1_vref_nmos_l","op1_vref_nmos_m","op1_vref_pmos_w","op1_vref_pmos_l","op1_vref_pmos_m","op1_stage2_pmos_w","op1_stage2_pmos_l","op1_stage2_pmos_m","psrr_stabilizer_w","psrr_stabilizer_l","psrr_stabilizer_m","res_rr0_w","res_rr0_l","res_rr0_m","res_rr2_w","res_rr2_l","res_rr2_m"]
+	include_original = False
 	try:
 		open(basedir + "result/library.csv","rt").close()
 		log_write("Found " + basedir + "result/library.csv")
@@ -254,12 +255,15 @@ if True:
 			initial = open(basedir + "result/result.csv","wt")
 			initial.write("time,identifier,FoM_0,FoM_1,FoM_2,decision_value,DC - temperature coefficient (ppm/C),DC - average vref (temp -40C to 125C),DC - max vref,DC - temp @ max vref,DC - min vref,DC - temp @ min vref,AC - PSRR @ 100 Hz (dB),max PSRR @ kHz range,frequency @ kHz PSRR max,max PSRR @ MHz range,frequency @ MHz PSRR max,LS - average vref (vdd 1.8V to 3.5V),LS - line sensitivity,MC - avg/std vref,MC - average vref,MC - stdev vref,MC - average power,MC - stdev power"+"\n")
 			initial.close()
+			include_original = True
 		except Exception:
 			log_write(str(sys.exc_info()[0]) + " @ CSV result init write: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))
 			raise
 	# step 3.0
 	logtime = int(time.time() * 1e6)
-	dict_113_sorted = sorted(list(dict_113), key=lambda x: dict_211[x], reverse=True)
+	dict_113_sorted = sorted(list(dict_113), key=lambda x: dict_213[x], reverse=True)
+	if not include_original:
+		dict_113_sorted = [alter for alter in dict_113_sorted if dict_113[alter] != 10000000]
 	# step 3.1
 	try:
 		log_write("Writing to " + basedir + "result/library.csv")
