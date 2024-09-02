@@ -4,9 +4,9 @@ basedir = dict_creator_lib.curdir_file_win()
 
 var_list = ["op1_stage1_pmos_w","op1_stage1_pmos_l","op1_stage1_pmos_m","op1_stage1_nmos_w","op1_stage1_nmos_l","op1_stage1_nmos_m","op1_stage2_nmos_w","op1_stage2_nmos_l","op1_stage2_nmos_m","op1_vref_nmos_w","op1_vref_nmos_l","op1_vref_nmos_m","op1_vref_pmos_w","op1_vref_pmos_l","op1_vref_pmos_m","op1_stage2_pmos_w","op1_stage2_pmos_l","op1_stage2_pmos_m","psrr_stabilizer_w","psrr_stabilizer_l","psrr_stabilizer_m","res_rr0_w","res_rr0_l","res_rr0_m","res_rr2_w","res_rr2_l","res_rr2_m"]
 original = dict(map(lambda k, v: (k, v), var_list, [10,18,4,12,1,8,8,1,4,14,8,4,5,8,4,8,4,8,2.75,4,8,1,14,1,1,8.55,2]))
-original_unit = dict([(key, (0.025, 1)[key.endswith("m")]) for key in var_list])
+original_unit = dict([(key, (0.05, 1)[key.endswith("m")]) for key in var_list])
 original_min = dict([(key, ((1, 5)[key.endswith("ratio")], 0.18 + (0, 0.04)[key.endswith("w")])[key.endswith("w") or key.endswith("l")]) for key in var_list])
-original_max = dict([(key, (20, 25)[key.endswith("w")]) for key in var_list])
+original_max = dict([(key, (20, 25)[key.endswith("w")]  / (1, 4)[key.endswith("l")]) for key in var_list])
 assert(len(var_list) == len(original))
 for x in [original_unit, original_min, original_max]:
 	assert(len(original) == len(x))
@@ -37,15 +37,18 @@ boolval = len(sys.argv) > 2 and sys.argv[2] == "True"
 #floatval = float((0.4 + 0.5 * random.random(), sys.argv[-1])[len(sys.argv) > 2])
 floatval = 0
 #if True and check[0] and len(([], check[1])[check[0]]) >= 4: # Liu et al. (ACM 2009)
-if check[0]:
-	if len(check[1]) == 0:
-		dict_creator_lib.log_write("warning: outlist list is empty")
-	dict_creator_lib.log_write("dictionary creator - CMA-ES")
-	dict_creator_lib.regenerate_cma_es(sys.argv[1], check[1], current_context)
-else:
-	if boolval:
-		dict_creator_lib.log_write("dictionary creator - random - does not use base value - trigger: " + str(sys.argv[2:]))
+try:
+	if check[0]:
+		if len(check[1]) == 0:
+			dict_creator_lib.log_write("warning: outlist list is empty")
+		dict_creator_lib.log_write("dictionary creator - CMA-ES")
+		dict_creator_lib.regenerate_cma_es_lib(sys.argv[1], check[1], current_context)
 	else:
-		dict_creator_lib.log_write("dictionary creator - random - uses base value")
-	dict_creator_lib.create(int(sys.argv[1]), boolval, current_context)
-
+		if boolval:
+			dict_creator_lib.log_write("dictionary creator - random - does not use base value - trigger: " + str(sys.argv[2:]))
+		else:
+			dict_creator_lib.log_write("dictionary creator - random - uses base value")
+		dict_creator_lib.create(int(sys.argv[1]), boolval, current_context)
+except Exception as err:
+	dict_creator_lib.log_write("Error during dict creation: " + str(err))
+	raise

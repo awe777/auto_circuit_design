@@ -50,7 +50,12 @@ def mainrun(destname):
 						trunc_time = "2" + trunc_time.zfill(7)
 					dest.write(".param creation_time="+str(int(trunc_time))+"\n")
 				else:
-					dest.write(".param "+key+"="+str(dict_[key][z])+"\n")
+					if "." in str(dict_[key][z]):
+						dict_key_z = str(dict_[key][z])
+						dict_key_z = dict_key_z[:dict_key_z.index(".") + 3]
+						dest.write(".param "+key+"="+dict_key_z+"\n")
+					else:
+						dest.write(".param "+key+"="+str(dict_[key][z])+"\n")
 		dest.close()
 	except Exception:
 		log_write(str(sys.exc_info()[0]) + " @ write: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))

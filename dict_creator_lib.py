@@ -1,6 +1,7 @@
 import os, random, pickle, time, math, cmath
 import numpy as np
 import purecma as pcma
+import cma
 from numpy import linalg as npLA
 def context_builder(var_list_dicttuple = {}, rspread = 0.4):
 	tuple_list = [('random_spread', rspread)]
@@ -240,7 +241,7 @@ def create(length, full_random = False, context=context_builder()):
 		log_write("".join([str(x) for x in ["DEBUG: ", count, " of ", length, " is fully randomized"]]))
 	with open(curdir_file_win("dict.pickle") , "wb") as dest:
 		pickle.dump(dictpickle, dest, 0)
-def cma_es_helper(es, outlist, var_list, tell_limit):
+def cma_es_helper(es, outlist, var_list, tell_limit, sample_count):
 	es_x = []
 	es_y = []
 	entry_added = False
@@ -280,6 +281,11 @@ def cma_es_helper(es, outlist, var_list, tell_limit):
 		else:
 			log_write("error during telling sequence with at least 1 successful tell")
 			log_write("error details: " + str(err))
+	es_ask = list(es.ask())
+	while len(es_ask) < sample_count:
+		es_ask = es_ask + list(es.ask())
+	log_write("DEBUG: # of entries in es_ask:\t" + str(len(es_ask)))
+	return es_ask
 def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=False):
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
@@ -295,18 +301,19 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 		else:
 			log_write("force reset enabled")
 			log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
-			es = pcma.CMAES([original[key] for key in var_list], 0.5)
+			es = pcma.CMAES([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.5 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]))
 	except OSError as err:
 		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 		#es = pcma.CMAES([original[key] for key in var_list], 0.5, 2 * len(var_list))
-		es = pcma.CMAES([original[key] for key in var_list], 0.5)
+		#es = pcma.CMAES([original[key] for key in var_list], 0.5)
+		es = pcma.CMAES([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.4 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]))
 
 	try:
-		cma_es_helper(es, outlist, var_list, len(es.params.weights))
+		es_ask = cma_es_helper(es, outlist, var_list, len(es.params.weights), num)
 	except Exception as err:
 		log_write("retrying with es.params.mu")
-		cma_es_helper(es, outlist, var_list, es.params.mu)
+		es_ask = cma_es_helper(es, outlist, var_list, es.params.mu, num)
 	'''
 	# outlist is a list of [FoM, dict([(key in var_list + ["title"], value)])]
 	# a_cov is usually set to 2, setting less than 2 could be useful in noisy functions
@@ -379,13 +386,52 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 	
 	cov_eigen_lam, cov_eigen_vec = npLA.eig(np.array(cov_mat))
 	'''
-	es_ask = list(es.ask())
-	while len(es_ask) < num:
-		es_ask = es_ask + list(es.ask())
-	log_write("DEBUG: # of entries in es_ask:\t" + str(len(es_ask)))
 	nextbatch = dict([(key, []) for key in var_list + ["title"]])
 	#for z in range(num):
 		#generated = mean + step_sigma * (cov_eigen_vec @ np.diag(np.sqrt(cov_eigen_lam)) @ np.array([random.gauss(0, 1) for key in var_list]))
+	for generated in es_ask:
+		for z0, key in enumerate(var_list):
+			value = float(generated[z0])
+			if original_unit[key] is not None:
+				value = int(round(value / original_unit[key])) * original_unit[key]
+			if original_min[key] is not None:
+				value = (original_min[key], value)[value > original_min[key]]
+			if original_max[key] is not None:
+				value = (value, original_max[key])[value > original_max[key]]
+			nextbatch[key].append(value)
+		nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
+	with open(curdir_file_win("cma_es_param.pickle"), "wb") as cma_obj_source:
+		pickle.dump(es, cma_obj_source, 0)
+		log_write("DEBUG: successful write to " + curdir_file_win("cma_es_param.pickle"))
+	with open(curdir_file_win("dict.pickle"), "wb") as dest:
+		pickle.dump(nextbatch, dest, 0)
+		log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
+def regenerate_cma_es_lib(length, outlist, context=context_builder(), force_reset=False):
+	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
+	var_list = sorted(list(original))
+	num = int(length)
+	try:
+		if not force_reset:
+			with open(curdir_file_win("cma_es_param.pickle"), "rb") as cma_obj_source:
+				es = pickle.load(cma_obj_source)
+				assert type(es) == cma.CMAEvolutionStrategy
+		else:
+			log_write("force reset enabled")
+			log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
+			es = cma.CMAEvolutionStrategy([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.5 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]))
+	except OSError as err:
+		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
+		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
+		#es = pcma.CMAES([original[key] for key in var_list], 0.5, 2 * len(var_list))
+		#es = pcma.CMAES([original[key] for key in var_list], 0.5)
+		es = cma.CMAEvolutionStrategy([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.4 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]))
+
+	try:
+		es_ask = cma_es_helper(es, outlist, var_list, es.N_pheno, num)
+	except Exception as err:
+		log_write("retrying with es.params.mu")
+		es_ask = cma_es_helper(es, outlist, var_list, es.popsize, num)
+	nextbatch = dict([(key, []) for key in var_list + ["title"]])
 	for generated in es_ask:
 		for z0, key in enumerate(var_list):
 			value = float(generated[z0])
