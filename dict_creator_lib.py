@@ -481,15 +481,15 @@ def regenerate_cma_es_lib(length, outlist, context=context_builder(), force_rese
 		#es = pcma.CMAES([original[key] for key in var_list], 0.5, 2 * len(var_list))
 		#es = pcma.CMAES([original[key] for key in var_list], 0.5)
 		es = cma.CMAEvolutionStrategy([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.4 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]))
-	log_write("DEBUG: current sigma shape: " + str(np.shape(es.sigma_vec)))
-	log_write("DEBUG: current sigma list: " + str(list(es.sigma_vec)))
+	log_write("DEBUG: current sigma shape: " + str(np.shape(es.D)))
+	log_write("DEBUG: current sigma list: " + str(list(es.D)))
 	try:
 		es_ask = cma_es_helper_2(es, outlist, var_list, es.N_pheno, num)
 	except Exception as err:
 		log_write("retrying with es.params.mu")
 		es_ask = cma_es_helper_2(es, outlist, var_list, es.popsize, num)
-	log_write("DEBUG: current sigma shape: " + str(np.shape(es.sigma_vec)))
-	log_write("DEBUG: current sigma list: " + str(list(es.sigma_vec)))
+	log_write("DEBUG: current sigma shape: " + str(np.shape(es.D)))
+	log_write("DEBUG: current sigma list: " + str(list(es.D)))
 	nextbatch = dict([(key, []) for key in var_list + ["title"]])
 	for generated in es_ask:
 		for z0, key in enumerate(var_list):
