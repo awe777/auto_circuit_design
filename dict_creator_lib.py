@@ -241,6 +241,32 @@ def create(length, full_random = False, context=context_builder()):
 		log_write("".join([str(x) for x in ["DEBUG: ", count, " of ", length, " is fully randomized"]]))
 	with open(curdir_file_win("dict.pickle") , "wb") as dest:
 		pickle.dump(dictpickle, dest, 0)
+def create_cma_es(length, full_random = False, context=context_builder()):
+	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
+	var_list = sorted(list(original))
+	es = cma.CMAEvolutionStrategy([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.3 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]), {'popsize': int(length)})
+	es_ask = []
+	es_ask = es_ask + list(es.ask())
+	while len(es_ask) < int(length):
+		es_ask = es_ask + list(es.ask())
+	nextbatch = dict([(key, []) for key in var_list + ["title"]])
+	for generated in es_ask:
+		for z0, key in enumerate(var_list):
+			value = float(generated[z0])
+			if original_unit[key] is not None:
+				value = int(round(value / original_unit[key])) * original_unit[key]
+			if original_min[key] is not None:
+				value = (original_min[key], value)[value > original_min[key]]
+			if original_max[key] is not None:
+				value = (value, original_max[key])[value > original_max[key]]
+			nextbatch[key].append(value)
+		nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
+	with open(curdir_file_win("cma_es_param.pickle"), "wb") as cma_obj_source:
+		pickle.dump(es, cma_obj_source, 0)
+		log_write("DEBUG: successful write to " + curdir_file_win("cma_es_param.pickle"))
+	with open(curdir_file_win("dict.pickle"), "wb") as dest:
+		pickle.dump(nextbatch, dest, 0)
+		log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
 def cma_es_helper(es, outlist, var_list, tell_limit, sample_count):
 	es_ask = []
 	es_x = []
@@ -483,15 +509,15 @@ def regenerate_cma_es_lib(length, outlist, context=context_builder(), force_rese
 		#es = pcma.CMAES([original[key] for key in var_list], 0.5, 2 * len(var_list))
 		#es = pcma.CMAES([original[key] for key in var_list], 0.5)
 		es = cma.CMAEvolutionStrategy([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.4 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]))
-	log_write("DEBUG: current sigma shape: " + str(np.shape(es.D)))
-	log_write("DEBUG: current sigma list: " + str(list(es.D)))
+	#log_write("DEBUG: current sigma shape: " + str(np.shape(es.D)))
+	log_write("DEBUG: current variances: " + str(es.sm.variances))
 	try:
 		es_ask = cma_es_helper_2(es, outlist, var_list, es.N_pheno, num)
 	except Exception as err:
 		log_write("retrying with es.params.mu")
 		es_ask = cma_es_helper_2(es, outlist, var_list, es.popsize, num)
-	log_write("DEBUG: current sigma shape: " + str(np.shape(es.D)))
-	log_write("DEBUG: current sigma list: " + str(list(es.D)))
+	#log_write("DEBUG: current sigma shape: " + str(np.shape(es.D)))
+	log_write("DEBUG: current variances: " + str(es.sm.variances))
 	nextbatch = dict([(key, []) for key in var_list + ["title"]])
 	for generated in es_ask:
 		for z0, key in enumerate(var_list):

@@ -6,7 +6,7 @@ var_list = ["op1_stage1_pmos_w","op1_stage1_pmos_l","op1_stage1_pmos_m","op1_sta
 original = dict(map(lambda k, v: (k, v), var_list, [10,18,4,12,1,8,8,1,4,14,8,4,5,8,4,8,4,8,2.75,4,8,1,14,1,1,8.55,2]))
 original_unit = dict([(key, (0.05, 1)[key.endswith("m")]) for key in var_list])
 original_min = dict([(key, ((1, 5)[key.endswith("ratio")], 0.18 + (0, 0.04)[key.endswith("w")])[key.endswith("w") or key.endswith("l")]) for key in var_list])
-original_max = dict([(key, (20, 25)[key.endswith("w")]  / (1, 4)[key.endswith("l")]) for key in var_list])
+original_max = dict([(key, (20, 25)[key.endswith("w")]  / (1, 4)[key.startswith("op1_stage2")]) for key in var_list])
 assert(len(var_list) == len(original))
 for x in [original_unit, original_min, original_max]:
 	assert(len(original) == len(x))
@@ -48,7 +48,7 @@ try:
 			dict_creator_lib.log_write("dictionary creator - random - does not use base value - trigger: " + str(sys.argv[2:]))
 		else:
 			dict_creator_lib.log_write("dictionary creator - random - uses base value")
-		dict_creator_lib.create(int(sys.argv[1]), boolval, current_context)
+		dict_creator_lib.create_cma_es(int(sys.argv[1]), boolval, current_context)
 except Exception as err:
 	dict_creator_lib.log_write("Error during dict creation: " + str(err))
 	raise
