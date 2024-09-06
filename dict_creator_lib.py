@@ -764,25 +764,29 @@ def regenerate_ga(length, outlist, context=context_builder(), use_prev = False):
 		pickle.dump(nextbatch, dest, 0)
 try:
 	from bayes_opt import BayesianOptimization # IMPORTANT: REPLACE MODULE WITH UP-TO-DATE SOURCE: https://github.com/bayesian-optimization/BayesianOptimization
+	#from bayes_opt import acquisition
 	from bayes_opt.logger import JSONLogger
 	from bayes_opt.event import Events
-	from bayes_opt.util import load_logs
+	from bayes_opt.util import load_logs, UtilityFunction
 	def regenerate_bo(length, outlist, context=context_builder()):#, minimum_fom=0):
 		assert type(int(length)) == type(0)
 		original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
 		var_list = sorted(list(original))
 		num = int(length)
 		hyperparameter_boundaries = dict([(key, (original_min[key], original_max[key])) for key in var_list])
-		bayes_opt_inst = BayesianOptimization(f=None, pbounds=hyperparameter_boundaries, verbose=2)
+		
+		acquisition_function = UtilityFunction(kind="ucb", kappa=2.5, xi=1)
 		try:
-			with open(curdir_file_win("bo_log.json"), "rt") as source:
-				pass
-			load_logs(bayes_opt_inst, logs=[curdir_file_win("bo_log.json")])
-			log_write("".join([str(x) for x in ["Loaded ", bayes_opt_inst.space," prior points"]]))
-			bayes_opt_inst.subscribe(Events.OPTIMIZATION_STEP, JSONLogger(path=curdir_file_win("bo_log.json")))
+			with open(curdir_file_win("bayes_opt_inst.pickle"), "rb") as source:
+				bayes_opt_inst = pickle.load(source)
+				assert type(bayes_opt_inst) == BayesianOptimization
+			#load_logs(bayes_opt_inst, logs=[curdir_file_win("bo_log.json")])
+			#log_write("".join([str(x) for x in ["Loaded ", bayes_opt_inst.space," prior points"]]))
+			#bayes_opt_inst.subscribe(Events.OPTIMIZATION_STEP, JSONLogger(path=curdir_file_win("bo_log.json")))
 		except OSError as err:
-			log_write("encountered error while trying to read bo_log.json file: " + str(err))
+			log_write("encountered error while trying to read bayes_opt_inst.pickle file: " + str(err))
 			log_write("fallback to a new run")
+			bayes_opt_inst = BayesianOptimization(f=None, pbounds=hyperparameter_boundaries, verbose=2)
 		sorted_outlist = sorted(outlist, key=lambda x: x[0])
 		try:
 			for x in sorted_outlist:
@@ -795,16 +799,18 @@ try:
 		fill = 0
 		nextbatch = dict([(key, []) for key in var_list + ["title"]])
 		while fill < num:
-			nextpoint = bayes_opt_inst.suggest()
+			nextpoint = bayes_opt_inst.suggest(acquisition_function)
 			nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
 			for key in var_list:
-				value = round(int(round(nextpoint[key] / original_unit[key])) * original_unit[key], max(0, 0 - int(cmath.log10(original_unit[key]))))
+				value = round(int(round(nextpoint[key] / original_unit[key])) * original_unit[key], max(0, 0 - int(math.log10(original_unit[key]))))
 				if original_min[key] is not None:
 					value = (original_min[key], value)[value > original_min[key]]
 				if original_max[key] is not None:
 					value = (value, original_max[key])[value > original_max[key]]
 				nextbatch[key].append(value)
 			fill = fill + 1
+		with open(curdir_file_win("bayes_opt_inst.pickle"), "wb") as dest:
+			pickle.dump(bayes_opt_inst, dest, 0)
 		with open(curdir_file_win("dict.pickle"), "wb") as dest:
 			pickle.dump(nextbatch, dest, 0)
 except Exception:

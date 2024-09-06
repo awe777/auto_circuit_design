@@ -1,4 +1,4 @@
-import sys, pickle, dict_creator_lib
+import sys, pickle, math, dict_creator_lib
 # import random
 basedir = dict_creator_lib.curdir_file_win()
 
@@ -41,14 +41,16 @@ try:
 	if check[0]:
 		if len(check[1]) == 0:
 			dict_creator_lib.log_write("warning: outlist list is empty")
-		dict_creator_lib.log_write("dictionary creator - CMA-ES")
-		dict_creator_lib.regenerate_cma_es_lib(sys.argv[1], check[1], current_context)
+		#dict_creator_lib.log_write("dictionary creator - CMA-ES")
+		dict_creator_lib.log_write("dictionary creator - BO")
+		#dict_creator_lib.regenerate_cma_es((4 + int(3 * math.log(len(original))), sys.argv[1])[boolval], sorted(check[1], key=(lambda x: x[0]), reverse=True)[:4 + int(3 * math.log(len(original)))], current_context)
+		dict_creator_lib.regenerate_bo(sys.argv[1], check[1], current_context)
 	else:
 		if boolval:
 			dict_creator_lib.log_write("dictionary creator - random - does not use base value - trigger: " + str(sys.argv[2:]))
 		else:
 			dict_creator_lib.log_write("dictionary creator - random - uses base value")
-		dict_creator_lib.create_cma_es(int(sys.argv[1]), boolval, current_context)
+		dict_creator_lib.create(int(sys.argv[1]), boolval, current_context)
 except Exception as err:
 	dict_creator_lib.log_write("Error during dict creation: " + str(err))
 	raise

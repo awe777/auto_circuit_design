@@ -186,6 +186,7 @@ if True:
 	dict_211 = {}
 	dict_213 = {}
 	dict_214 = {}
+	usable_alters = []
 	# step 2.1
 	for alter in dict_113:
 		try:
@@ -201,13 +202,14 @@ if True:
 			dict_213[alter] = math.exp((4.0/3.0) * psrr_factor / dict_115[alter]["vref_tc"] - 1)
 			# FoM from prior art is |PSRR| * temp_range * VDD / (TC * power)
 			dict_214[alter] = psrr_factor * 165 * 1.8 / (dict_115[alter]["vref_tc"] * dict_143[alter]["pow_avg_proc"])
+			usable_alters.append(alter)
 		except Exception:
 			log_write("Step 2 FoM calculation error - skipping " + str(dict_113[alter]))
 			log_write(str(sys.exc_info()[0]) + " @ FoM calc: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))
 	# step 2.2
 	try:
 		fom_couple_list = []		
-		for alter in dict_113:
+		for alter in usable_alters:
 			used_fom = (dict_213[alter], dict_213[alter])[decision_value]
 			if dict_113[alter] != int(1e7):
 				fom_couple_list.append((used_fom, dict([(key, dict_114[alter][key]) for key in var_list] + [("title", "sim_"+str(dict_113[alter])+".sp")])))
@@ -261,28 +263,35 @@ if True:
 			raise
 	# step 3.0
 	logtime = int(time.time() * 1e6)
-	dict_113_sorted = sorted(list(dict_113), key=lambda x: dict_213[x], reverse=True)
+	dict_113_sorted = sorted(list(usable_alters), key=lambda x: dict_213[x], reverse=True)
 	if not include_original:
 		dict_113_sorted = [alter for alter in dict_113_sorted if dict_113[alter] != 10000000]
 	# step 3.1
+	# step 3.2
+	valid_alter = []
+	try:
+		log_write("Writing to " + basedir + "result/result.csv")
+		csv_file = open(basedir + "result/result.csv","at")
+		for alter in dict_113_sorted:
+			try:
+				line = "".join([str(x) + ", " for x in [logtime, dict_113[alter], dict_211[alter], measform3(dict_213[alter]), measform3(dict_214[alter]), decision_value] + [dict_115[alter][key] for key in outvar_list_dc] + [dict_122[alter][key] for key in outvar_list_ac] + [measform3(dict_132[alter][key]) for key in outvar_list_ls] + [measform3(dict_143[alter]["vref_avg_proc"] / dict_143[alter]["vref_std_proc"])] + [measform3(dict_143[alter][key]) for key in ["vref_avg_proc", "vref_std_proc", "pow_avg_proc", "pow_std_proc"]]])
+				csv_file.write(line + "\n")
+				valid_alter.append(alter)
+			except Exception:
+				log_write("WARNING: failed to write result for " + str(dict_113[alter]))
+		csv_file.close()
+	except Exception:
+		log_write(str(sys.exc_info()[0]) + " @ CSV result content write: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))
+		raise
 	try:
 		log_write("Writing to " + basedir + "result/library.csv")
 		csv_file = open(basedir + "result/library.csv","at")
-		for line in ["".join([str(x) + ", " for x in [logtime, dict_113[alter]] + [dict_114[alter][key] for key in var_list]]) for alter in dict_113_sorted]:
+		for alter in valid_alter:
+			line = "".join([str(x) + ", " for x in [logtime, dict_113[alter]] + [dict_114[alter][key] for key in var_list]])
 			csv_file.write(line + "\n")
 		csv_file.close()
 	except Exception:
 		log_write(str(sys.exc_info()[0]) + " @ CSV library content write: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))
-		raise
-	# step 3.2
-	try:
-		log_write("Writing to " + basedir + "result/result.csv")
-		csv_file = open(basedir + "result/result.csv","at")
-		for line in ["".join([str(x) + ", " for x in [logtime, dict_113[alter], dict_211[alter], measform3(dict_213[alter]), measform3(dict_214[alter]), decision_value] + [dict_115[alter][key] for key in outvar_list_dc] + [dict_122[alter][key] for key in outvar_list_ac] + [measform3(dict_132[alter][key]) for key in outvar_list_ls] + [measform3(dict_143[alter]["vref_avg_proc"] / dict_143[alter]["vref_std_proc"])] + [measform3(dict_143[alter][key]) for key in ["vref_avg_proc", "vref_std_proc", "pow_avg_proc", "pow_std_proc"]] ]) for alter in dict_113_sorted]:
-			csv_file.write(line + "\n")
-		csv_file.close()
-	except Exception:
-		log_write(str(sys.exc_info()[0]) + " @ CSV result content write: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))
 		raise
 	sub_call("".join(["cd ",basedir,"; rm -rf temp"]))
 	sub_call("".join(["cd ",basedir,"; rm -rf output/"]))
