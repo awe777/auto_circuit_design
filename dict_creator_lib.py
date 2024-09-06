@@ -256,7 +256,7 @@ def cma_es_helper(es, outlist, var_list, tell_limit, sample_count):
 				except Exception:
 					es_x, es_y = (lambda esx, esy: (list(esx), list(esy)))(zip(*zip(es_x, es_y)))
 			if len(es_y) == tell_limit:
-				es.tell(es_x, es_y) # tell MUST be equal to es.params.mu
+				es.tell(es_x, es_y, False) # tell MUST be equal to es.params.mu
 				es_x = []
 				es_y = []
 				entry_added = True
@@ -271,7 +271,7 @@ def cma_es_helper(es, outlist, var_list, tell_limit, sample_count):
 						except Exception:
 							es_x, es_y = (lambda esx, esy: (list(esx), list(esy)))(zip(*zip(es_x, es_y)))
 			if len(es_y) == tell_limit:
-				es.tell(es_x, es_y)
+				es.tell(es_x, es_y, False)
 				es_x = []
 				es_y = []
 				entry_added = True
@@ -300,13 +300,14 @@ def cma_es_helper_2(es, outlist, var_list, tell_limit, sample_count):
 		for output in sorted(outlist, key=lambda x: x[0], reverse=True):
 			if output[0] > 1:
 				try:
-					es_y.append(abs(1.0/output[0]))
+					#es_y.append(abs(1.0/output[0]))
+					es_y.append(math.log(1e58-output[0]))
 					#es_y.append(1.0/abs(math.log(output[0])))
 					es_x.append([output[1][key] for key in var_list])
 				except Exception:
 					es_x, es_y = (lambda esx, esy: (list(esx), list(esy)))(zip(*zip(es_x, es_y)))
 			if len(es_y) == tell_limit:
-				es.tell(es_x, es_y) # tell MUST be equal to es.params.mu
+				es.tell(es_x, es_y, False) # tell MUST be equal to es.params.mu
 				es_x = []
 				es_y = []
 				es_ask = es_ask + list(es.ask())
@@ -315,13 +316,14 @@ def cma_es_helper_2(es, outlist, var_list, tell_limit, sample_count):
 				for output in sorted(outlist, key=lambda x: x[0], reverse=True):
 					if output[0] > 1 and len(es_y) < tell_limit:
 						try:
-							es_y.append(abs(1.0/output[0]))
+							#es_y.append(abs(1.0/output[0]))
+							es_y.append(math.log(1e58-output[0]))
 							#es_y.append(1.0/abs(math.log(output[0])))
 							es_x.append([output[1][key] for key in var_list])
 						except Exception:
 							es_x, es_y = (lambda esx, esy: (list(esx), list(esy)))(zip(*zip(es_x, es_y)))
 			if len(es_y) == tell_limit:
-				es.tell(es_x, es_y)
+				es.tell(es_x, es_y, False)
 				es_x = []
 				es_y = []
 				es_ask = es_ask + list(es.ask())
@@ -340,7 +342,7 @@ def cma_es_helper_2(es, outlist, var_list, tell_limit, sample_count):
 		raise RuntimeError("failed to execute cma_es_helper_2, output list is empty")
 	else:
 		return es_ask
-def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=False):
+def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=False, a_cov=2, c_m=1):
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
 	# note to self: pickling the ES object is possible: https://github.com/CMA-ES/pycma/issues/126
@@ -474,7 +476,7 @@ def regenerate_cma_es_lib(length, outlist, context=context_builder(), force_rese
 		else:
 			log_write("force reset enabled")
 			log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
-			es = cma.CMAEvolutionStrategy([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.5 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]))
+			es = cma.CMAEvolutionStrategy([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.3 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]))
 	except OSError as err:
 		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
