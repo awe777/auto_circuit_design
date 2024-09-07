@@ -26,8 +26,8 @@ def std(inputlist, avg_init=None):
 	return math.pow(avg([float(x - avg_) * float(x - avg_) for x in inputlist]), 0.5)
 def normal_2():
 	base = [1 - random.random(), random.random()]
-	out = cmath.rect(cmath.sqrt(2 * cmath.log(1/base[0])), 2 * cmath.pi * base[1])
-	return (float(out.real), float(out.imag)) 
+	out = cmath.rect(math.sqrt(2 * math.log(1/base[0])), 2 * math.pi * base[1])
+	return (out.real, out.imag) 
     # returns 2 samples from normal distribution
 	# can be deprecated given random.gauss(0, 1) exists, but can be useful in airgapped systems
 def getsingle(fomlist):
