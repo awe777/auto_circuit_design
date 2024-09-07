@@ -42,9 +42,10 @@ try:
 		if len(check[1]) == 0:
 			dict_creator_lib.log_write("warning: outlist list is empty")
 		#dict_creator_lib.log_write("dictionary creator - CMA-ES")
-		dict_creator_lib.log_write("dictionary creator - BO")
+		#dict_creator_lib.log_write("dictionary creator - BO")
+		dict_creator_lib.log_write("dictionary creator - GA")
 		#dict_creator_lib.regenerate_cma_es((4 + int(3 * math.log(len(original))), sys.argv[1])[boolval], sorted(check[1], key=(lambda x: x[0]), reverse=True)[:4 + int(3 * math.log(len(original)))], current_context)
-		dict_creator_lib.regenerate_bo(sys.argv[1], check[1], current_context)
+		dict_creator_lib.regenerate_ga(sys.argv[1], check[1], current_context)
 	else:
 		if boolval:
 			dict_creator_lib.log_write("dictionary creator - random - does not use base value - trigger: " + str(sys.argv[2:]))

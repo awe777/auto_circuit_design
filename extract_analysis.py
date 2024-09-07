@@ -207,10 +207,12 @@ if True:
 			log_write("Step 2 FoM calculation error - skipping " + str(dict_113[alter]))
 			log_write(str(sys.exc_info()[0]) + " @ FoM calc: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))
 	# step 2.2
+	fom_1st = dict_213
+	fom_2nd = dict_213
 	try:
 		fom_couple_list = []		
 		for alter in usable_alters:
-			used_fom = (dict_213[alter], dict_213[alter])[decision_value]
+			used_fom = (fom_1st[alter], fom_2nd[alter])[decision_value]
 			if dict_113[alter] != int(1e7):
 				fom_couple_list.append((used_fom, dict([(key, dict_114[alter][key]) for key in var_list] + [("title", "sim_"+str(dict_113[alter])+".sp")])))
 		output_dest = open(basedir + "selectedparents.pickle", "wb")
@@ -263,7 +265,7 @@ if True:
 			raise
 	# step 3.0
 	logtime = int(time.time() * 1e6)
-	dict_113_sorted = sorted(list(usable_alters), key=lambda x: dict_213[x], reverse=True)
+	dict_113_sorted = sorted(sorted(list(usable_alters), key=lambda x: fom_2nd[x], reverse=True), key=lambda x: fom_1st[x], reverse=True)
 	if not include_original:
 		dict_113_sorted = [alter for alter in dict_113_sorted if dict_113[alter] != 10000000]
 	# step 3.1
