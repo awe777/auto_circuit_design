@@ -8,3 +8,4 @@
 *.env
 .venv
 run*.py
+result*/
