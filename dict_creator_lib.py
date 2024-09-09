@@ -368,13 +368,13 @@ def cma_es_helper_2(es, outlist, var_list, tell_limit, sample_count):
 		raise RuntimeError("failed to execute cma_es_helper_2, output list is empty")
 	else:
 		return es_ask
-def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=False, a_cov=2, c_m=1):
+def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=False, force_length=False, a_cov=2, c_m=1):
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
 	# note to self: pickling the ES object is possible: https://github.com/CMA-ES/pycma/issues/126
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
 	var_list = sorted(list(original))
-	num = int(length)
+	#num = int(length)
 	# try:
 	# 	if not force_reset:
 	# 		with open(curdir_file_win("cma_es_param.pickle"), "rb") as cma_obj_source:
@@ -402,10 +402,11 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 	# c_m is usually set to 1, setting less than 1 could be useful in noisy functions
 	#'''
 	ndim = len(var_list)
-	num = min(4 + int(3 * math.log(ndim)), len(outlist))
-	#if force_length:
-	if True:
-		num = max(int(length), num)
+	default_num = 4 + int(3 * math.log(ndim))
+	num = min(int(default_num * 2), len(outlist))
+	num_out = num
+	if force_length:
+		num_out = max(num_out, length)
 	log_write("DEBUG: sample size is set to " + str(num))
 	var_list_ordered = sorted(var_list)
 	sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=True)
@@ -421,8 +422,9 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 		
 	enoi = math.sqrt(2) * math.gamma((1 + ndim)/2) / math.gamma(ndim/2) 
 	# math.gamma() is introduced in 3.2, approximation is sqrt(n) * (1 - (4n)^-1 + (21n^2)^-1)
-	raw_weight = [math.log((1 + num)/ 2) - math.log(1 + z) for z in range(num)]
-	mark = len([w for w in raw_weight if w >= 0])
+	default_weight = [math.log((1 + num)/ 2) - math.log(1 + z) for z in range(num)]
+	raw_weight = [sorted_outlist[z][0] * x for z, x in enumerate(default_weight)]
+	mark = len([w for w in default_weight if w >= 0])
 	sum_w_pos = sum(raw_weight[:mark])
 	sum_w_neg = -sum(raw_weight[mark:])
 	mu_eff_pos = sum_w_pos * sum_w_pos / sum([w * w for w in raw_weight[:mark]])
@@ -471,7 +473,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 	cov_eigen_lam, cov_eigen_vec = npLA.eig(np.array(cov_mat))
 	#'''
 	nextbatch = dict([(key, []) for key in var_list + ["title"]])
-	for z in range(num):
+	for z in range(num_out):
 		generated = mean + step_sigma * (cov_eigen_vec @ np.diag(np.sqrt(cov_eigen_lam)) @ np.array([random.gauss(0, 1) for key in var_list]))
 	# for generated in es_ask:
 		for z0, key in enumerate(var_list):
