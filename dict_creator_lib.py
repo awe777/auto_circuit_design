@@ -431,7 +431,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 	# math.gamma() is introduced in 3.2, approximation is sqrt(n) * (1 - (4n)^-1 + (21n^2)^-1)
 	default_weight = [math.log((1 + num)/ 2) - math.log(1 + z) for z in range(num)]
 	raw_weight = [rw_func(z) * x for z, x in enumerate(default_weight)]
-	mark = len([w for w in default_weight if w >= 0])
+	mark = len([w for w in raw_weight if w >= 0])
 	sum_w_pos = sum(raw_weight[:mark])
 	sum_w_neg = -sum(raw_weight[mark:])
 	mu_eff_pos = sum_w_pos * sum_w_pos / sum([w * w for w in raw_weight[:mark]])
