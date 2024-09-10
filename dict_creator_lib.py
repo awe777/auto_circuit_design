@@ -368,7 +368,7 @@ def cma_es_helper_2(es, outlist, var_list, tell_limit, sample_count):
 		raise RuntimeError("failed to execute cma_es_helper_2, output list is empty")
 	else:
 		return es_ask
-def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=False, force_length=False, a_cov=2, c_m=1):
+def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True, force_length=False, raw_weight_multfunc=None, a_cov=2, c_m=1, force_reset=False):
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
 	# note to self: pickling the ES object is possible: https://github.com/CMA-ES/pycma/issues/126
@@ -409,7 +409,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 		num_out = max(num_out, length)
 	log_write("DEBUG: sample size is set to " + str(num))
 	var_list_ordered = sorted(var_list)
-	sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=True)
+	sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=maximize)
 	make_new = force_reset
 	try:
 		if not force_reset:
@@ -419,11 +419,18 @@ def regenerate_cma_es(length, outlist, context=context_builder(), force_reset=Fa
 		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 		make_new = True
-		
+	if raw_weight_multfunc is None:
+		rw_func = lambda z: 1
+	else:
+		try:
+			rw_func_list = [float(raw_weight_multfunc[z]) for z in range(num)]
+			rw_func = lambda z: rw_func_list[z]
+		except Exception:
+			rw_func = raw_weight_multfunc
 	enoi = math.sqrt(2) * math.gamma((1 + ndim)/2) / math.gamma(ndim/2) 
 	# math.gamma() is introduced in 3.2, approximation is sqrt(n) * (1 - (4n)^-1 + (21n^2)^-1)
 	default_weight = [math.log((1 + num)/ 2) - math.log(1 + z) for z in range(num)]
-	raw_weight = [sorted_outlist[z][0] * x for z, x in enumerate(default_weight)]
+	raw_weight = [rw_func(z) * x for z, x in enumerate(default_weight)]
 	mark = len([w for w in default_weight if w >= 0])
 	sum_w_pos = sum(raw_weight[:mark])
 	sum_w_neg = -sum(raw_weight[mark:])
