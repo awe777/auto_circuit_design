@@ -241,6 +241,7 @@ def create(length, full_random = False, context=context_builder()):
 		log_write("".join([str(x) for x in ["DEBUG: ", count, " of ", length, " is fully randomized"]]))
 	with open(curdir_file_win("dict.pickle") , "wb") as dest:
 		pickle.dump(dictpickle, dest, 0)
+'''
 def create_cma_es(length, full_random = False, context=context_builder()):
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
 	var_list = sorted(list(original))
@@ -368,6 +369,7 @@ def cma_es_helper_2(es, outlist, var_list, tell_limit, sample_count):
 		raise RuntimeError("failed to execute cma_es_helper_2, output list is empty")
 	else:
 		return es_ask
+'''
 def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True, force_length=False, raw_weight_multfunc=None, a_cov=2, c_m=1, force_reset=False):
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
@@ -407,7 +409,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 	num_out = num
 	if force_length:
 		num_out = max(num_out, length)
-	log_write("DEBUG: sample size is set to " + str(num))
+	log_write("DEBUG: CMA-ES sample size is set to " + str(num_out))
 	var_list_ordered = sorted(var_list)
 	sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=maximize)
 	make_new = force_reset
@@ -511,6 +513,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 	with open(curdir_file_win("dict.pickle"), "wb") as dest:
 		pickle.dump(nextbatch, dest, 0)
 		log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
+'''
 def regenerate_cma_es_lib(length, outlist, context=context_builder(), force_reset=False):
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
 	var_list = sorted(list(original))
@@ -557,6 +560,7 @@ def regenerate_cma_es_lib(length, outlist, context=context_builder(), force_rese
 	with open(curdir_file_win("dict.pickle"), "wb") as dest:
 		pickle.dump(nextbatch, dest, 0)
 		log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
+'''
 def regenerate_pso(length, outlist, w, phi_p = 2, phi_g = 2, context=context_builder(), force_ignore_vb_dict=False):
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
 	var_list = sorted(list(original))
