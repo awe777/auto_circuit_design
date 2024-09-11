@@ -41,11 +41,12 @@ try:
 	if check[0]:
 		if len(check[1]) == 0:
 			dict_creator_lib.log_write("warning: outlist list is empty")
-		#dict_creator_lib.log_write("dictionary creator - CMA-ES")
+		length = int((2 * (4 + int(3 * math.log(len(var_list)))), sys.argv[1])[boolval])
+		dict_creator_lib.log_write("dictionary creator - CMA-ES" + (", forced length", ", using recommended length")[boolval])
 		#dict_creator_lib.log_write("dictionary creator - BO")
-		dict_creator_lib.log_write("dictionary creator - GA")
-		#dict_creator_lib.regenerate_cma_es((4 + int(3 * math.log(len(original))), sys.argv[1])[boolval], sorted(check[1], key=(lambda x: x[0]), reverse=True)[:4 + int(3 * math.log(len(original)))], current_context)
-		dict_creator_lib.regenerate_ga(sys.argv[1], check[1], current_context)
+		#dict_creator_lib.log_write("dictionary creator - GA")
+		dict_creator_lib.regenerate_cma_es(length, check[1], current_context, True, boolval, sorted([x[0] for x in check[1]], reverse=True))
+		#dict_creator_lib.regenerate_ga(sys.argv[1], check[1], current_context)
 	else:
 		if boolval:
 			dict_creator_lib.log_write("dictionary creator - random - does not use base value - trigger: " + str(sys.argv[2:]))
