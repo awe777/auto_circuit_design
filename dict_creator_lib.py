@@ -415,10 +415,13 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 	sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=maximize)
 	make_new = force_reset
 	restart = False
+	best_point = sorted_outlist[0]
 	try:
 		if not force_reset:
 			with open(curdir_file_win("cma_es_selfparam.pickle"), "rb") as source:
-				mean, step_sigma, cov_mat, p_sigma, p_cov, gen_count, prior_avgstd = pickle.load(source)
+				mean, step_sigma, cov_mat, p_sigma, p_cov, gen_count, prior_avgstd, best_point_old = pickle.load(source)
+				if best_point[0] != best_point_old[0] and (int(maximize) + int(best_point[0] > best_point_old[0]) == 1):
+					best_point = best_point_old
 				prior_avgstd.append((lambda xbar: (xbar, std([x[0] for x in sorted_outlist], xbar) / xbar))(avg([x[0] for x in sorted_outlist])))
 				if len(prior_avgstd) >= prior_avgstd_limit:
 					prior_avg, prior_std = zip(*prior_avgstd)
@@ -428,7 +431,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 						log_write("WARNING: no improvements after " + str(prior_avgstd_limit) + " cycles")
 						if prior_std[-1] > 0.8 * prior_std[0] and prior_std[-1] < 1.2 * prior_std[0]:
 							make_new = True
-							log_write("WARNING: falling back to fully random create()")
+							log_write("WARNING: falling back to create()")
 						else:
 							restart = False
 	except OSError as err:
@@ -535,10 +538,16 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 			pickle.dump(nextbatch, dest, 0)
 			log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
 	else:
-		log_write("DEBUG: calling create()")
-		create(length, True, context)
+		log_write("DEBUG: calling create() centered on best known point")
+		new_context = []
+		new_context.append(("original", dict([(keys, best_point[1][keys]) for keys in var_list])))
+		new_context.append(("original_unit", original_unit))
+		new_context.append(("original_min", original_min))
+		new_context.append(("original_max", original_max))
+		new_context.append(("random_spread", random_spread))
+		create(length, False, dict(new_context))
 	with open(curdir_file_win("cma_es_selfparam.pickle"), "wb") as dest:
-		pickle.dump((mean.tolist(), float(step_sigma), cov_mat.tolist(), p_sigma.tolist(), p_cov.tolist(), int(gen_count), prior_avgstd), dest, 0)
+		pickle.dump((mean.tolist(), float(step_sigma), cov_mat.tolist(), p_sigma.tolist(), p_cov.tolist(), int(gen_count), prior_avgstd, best_point), dest, 0)
 		log_write("DEBUG: successful write to " + curdir_file_win("cma_es_selfparam.pickle"))
 '''
 def regenerate_cma_es_lib(length, outlist, context=context_builder(), force_reset=False):
