@@ -54,7 +54,7 @@ def measform3(x):
 decision_value = 0
 if len(sys.argv) > 1:
 	try:
-		decision_value = int(float(sys.argv[1]) / 20) # switches FoM every 20 cycles
+		decision_value = int(float(sys.argv[1]) / 15) # switches FoM every 15 cycles
 		decision_value = (0, decision_value)[decision_value > 0] % 2
 	except Exception:
 		log_write(str(sys.exc_info()[0]) + " @ decision_value : " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))

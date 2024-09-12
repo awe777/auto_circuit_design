@@ -45,7 +45,7 @@ try:
 		dict_creator_lib.log_write("dictionary creator - CMA-ES" + (", forced length", ", using recommended length")[boolval])
 		#dict_creator_lib.log_write("dictionary creator - BO")
 		#dict_creator_lib.log_write("dictionary creator - GA")
-		dict_creator_lib.regenerate_cma_es(length, check[1], current_context, True, boolval, sorted([x[0] for x in check[1]], reverse=True))
+		dict_creator_lib.regenerate_cma_es(length, check[1], current_context, True, boolval)
 		#dict_creator_lib.regenerate_ga(sys.argv[1], check[1], current_context)
 	else:
 		if boolval:

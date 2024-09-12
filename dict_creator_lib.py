@@ -1,7 +1,7 @@
 import os, random, pickle, time, math, cmath
 import numpy as np
-import purecma as pcma
-import cma
+#import purecma as pcma
+#import cma
 from numpy import linalg as npLA
 def context_builder(var_list_dicttuple = {}, rspread = 0.4):
 	tuple_list = [('random_spread', rspread)]
@@ -221,7 +221,7 @@ def create(length, full_random = False, context=context_builder()):
 		dictpickle[key] = []
 	for index in range(int(length)):
 		title = "sim_" + str(int(time.time() * 1e6))
-		randomized = (index > 0) and (random.random() < 0.2 or full_random)
+		randomized = full_random or (random.random() < 0.2 and index > 0)
 		if randomized and not full_random:
 			count = count + 1
 		for key in list(original):
@@ -416,23 +416,42 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 	try:
 		if not force_reset:
 			with open(curdir_file_win("cma_es_selfparam.pickle"), "rb") as source:
-				mean, step_sigma, cov_mat, p_sigma, p_cov, gen_count = pickle.load(source)
+				mean, step_sigma, cov_mat, p_sigma, p_cov, gen_count, prior_std = pickle.load(source)
 	except OSError as err:
 		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 		make_new = True
 	if raw_weight_multfunc is None:
+		log_write("DEBUG: raw weight multiplier is set to 1")
 		rw_func = lambda z: 1
 	else:
 		try:
 			rw_func_list = [float(raw_weight_multfunc[z]) for z in range(num)]
+			log_write("DEBUG: raw weight multiplier is set to an input list")
 			rw_func = lambda z: rw_func_list[z]
 		except Exception:
 			rw_func = raw_weight_multfunc
+			log_write("DEBUG: raw weight multiplier is set to an input function as fallback")
 	enoi = math.sqrt(2) * math.gamma((1 + ndim)/2) / math.gamma(ndim/2) 
 	# math.gamma() is introduced in 3.2, approximation is sqrt(n) * (1 - (4n)^-1 + (21n^2)^-1)
 	default_weight = [math.log((1 + num)/ 2) - math.log(1 + z) for z in range(num)]
-	raw_weight = [rw_func(z) * x for z, x in enumerate(default_weight)]
+	if raw_weight_multfunc is None:
+		raw_weight = [math.pow(sorted_outlist[z][0], -1 + 2 * int(maximize)) * x for z, x in enumerate(default_weight)]
+		log_write("DEBUG: raw weight multiplier is set to "+("the reciprocal of ", "")[int(maximize)] + "its fitness value")
+	else:
+		indexable = True
+		try:
+			raw_weight = [raw_weight_multfunc[z] * x for z, x in enumerate(default_weight)]
+			log_write("DEBUG: raw weight multiplier is set to an input list")
+		except Exception:
+			indexable = False
+		if not indexable:
+			try:
+				raw_weight = [raw_weight_multfunc(z) * x for z, x in enumerate(default_weight)]
+				log_write("DEBUG: raw weight multiplier is set to an input function")
+			except Exception:
+				raw_weight = [1 * x for z, x in enumerate(default_weight)]
+				log_write("DEBUG: raw weight multiplier is set to 1 as fallback")
 	mark = len([w for w in raw_weight if w >= 0])
 	sum_w_pos = sum(raw_weight[:mark])
 	sum_w_neg = -sum(raw_weight[mark:])
@@ -455,6 +474,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 		p_sigma = [0 for z in range(ndim)]
 		p_cov = [0 for z in range(ndim)]
 		gen_count = 0
+		prior_std = []
 	
 	# up to this point, the method doesn't use third-party libraries
 	cov_eigen_lam, cov_eigen_vec = npLA.eig(np.array(cov_mat))
@@ -477,7 +497,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 	cov_mat = new_cov_0 + new_cov_1 + new_cov_2
 	gen_count = gen_count + 1
 	with open(curdir_file_win("cma_es_selfparam.pickle"), "wb") as dest:
-		pickle.dump((mean.tolist(), float(step_sigma), cov_mat.tolist(), p_sigma.tolist(), p_cov.tolist(), int(gen_count)), dest, 0)
+		pickle.dump((mean.tolist(), float(step_sigma), cov_mat.tolist(), p_sigma.tolist(), p_cov.tolist(), int(gen_count), prior_std), dest, 0)
 		log_write("DEBUG: successful write to " + curdir_file_win("cma_es_selfparam.pickle"))
 	cov_eigen_lam, cov_eigen_vec = npLA.eig(np.array(cov_mat))
 	#'''
