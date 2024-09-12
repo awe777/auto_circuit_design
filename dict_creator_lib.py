@@ -421,17 +421,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 		make_new = True
-	if raw_weight_multfunc is None:
-		log_write("DEBUG: raw weight multiplier is set to 1")
-		rw_func = lambda z: 1
-	else:
-		try:
-			rw_func_list = [float(raw_weight_multfunc[z]) for z in range(num)]
-			log_write("DEBUG: raw weight multiplier is set to an input list")
-			rw_func = lambda z: rw_func_list[z]
-		except Exception:
-			rw_func = raw_weight_multfunc
-			log_write("DEBUG: raw weight multiplier is set to an input function as fallback")
+
 	enoi = math.sqrt(2) * math.gamma((1 + ndim)/2) / math.gamma(ndim/2) 
 	# math.gamma() is introduced in 3.2, approximation is sqrt(n) * (1 - (4n)^-1 + (21n^2)^-1)
 	default_weight = [math.log((1 + num)/ 2) - math.log(1 + z) for z in range(num)]
