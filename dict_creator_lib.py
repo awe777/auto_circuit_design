@@ -415,7 +415,8 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 	sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=maximize)
 	make_new = force_reset
 	restart = False
-	best_point = sorted_outlist[0]
+	fom_sum = sum([x[0] for x in sorted_outlist])
+	best_point = (sorted_outlist[0][0] / fom_sum, sorted_outlist[0][1])
 	try:
 		if not force_reset:
 			with open(curdir_file_win("cma_es_selfparam.pickle"), "rb") as source:
