@@ -435,7 +435,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 							log_write("WARNING: falling back to create()")
 						else:
 							restart = False
-	except OSError as err:
+	except Exception as err:
 		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 		make_new = True
@@ -548,7 +548,10 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 		new_context.append(("random_spread", random_spread))
 		create(length, False, dict(new_context))
 	with open(curdir_file_win("cma_es_selfparam.pickle"), "wb") as dest:
-		pickle.dump((mean.tolist(), float(step_sigma), cov_mat.tolist(), p_sigma.tolist(), p_cov.tolist(), int(gen_count), prior_avgstd, best_point), dest, 0)
+		if restart:
+			pickle.dump((list(mean), float(step_sigma), list(cov_mat), list(p_sigma), list(p_cov), int(gen_count), prior_avgstd, best_point), dest, 0)
+		else:
+			pickle.dump((mean.tolist(), float(step_sigma), cov_mat.tolist(), p_sigma.tolist(), p_cov.tolist(), int(gen_count), prior_avgstd, best_point), dest, 0)
 		log_write("DEBUG: successful write to " + curdir_file_win("cma_es_selfparam.pickle"))
 '''
 def regenerate_cma_es_lib(length, outlist, context=context_builder(), force_reset=False):

@@ -42,7 +42,7 @@ try:
 		if len(check[1]) == 0:
 			dict_creator_lib.log_write("warning: outlist list is empty")
 		length = int((2 * (4 + int(3 * math.log(len(var_list)))), sys.argv[1])[boolval])
-		dict_creator_lib.log_write("dictionary creator - CMA-ES" + (", forced length", ", using recommended length")[boolval])
+		dict_creator_lib.log_write("dictionary creator - CMA-ES" + (", forced length", ", using recommended length")[1 - int(boolval)])
 		#dict_creator_lib.log_write("dictionary creator - BO")
 		#dict_creator_lib.log_write("dictionary creator - GA")
 		dict_creator_lib.regenerate_cma_es(length, check[1], current_context, True, boolval)
