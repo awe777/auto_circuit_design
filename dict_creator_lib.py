@@ -405,7 +405,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 	# c_m is usually set to 1, setting less than 1 could be useful in noisy functions
 	#'''
 	ndim = len(var_list)
-	default_num = 4 + int(3 * math.log(ndim))
+	default_num = 4 + int(round(3 * math.log(ndim)))
 	num = min(int(default_num * 2), len(outlist))
 	num_out = num
 	if force_length:
@@ -439,6 +439,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 		make_new = True
+	log_write("DEBUG: current best point has a FoM portion of " + str(best_point[0]))
 	if make_new:
 		mean = [avg([entry[1][key] for entry in sorted_outlist]) for key in var_list_ordered]
 		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) / 3.0
@@ -523,17 +524,17 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 		# with open(curdir_file_win("cma_es_param.pickle"), "wb") as cma_obj_source:
 		# 	pickle.dump(es, cma_obj_source, 0)
 		# 	log_write("DEBUG: successful write to " + curdir_file_win("cma_es_param.pickle"))
-		for z in range(int(num_out * 0.4)):
-			for z0, key in enumerate(var_list):
-				value = random.uniform(original_min[key], original_max[key])
-				if original_unit[key] is not None:
-					value = int(round(value / original_unit[key])) * original_unit[key]
-				if original_min[key] is not None:
-					value = (original_min[key], value)[value > original_min[key]]
-				if original_max[key] is not None:
-					value = (value, original_max[key])[value > original_max[key]]
-				nextbatch[key].append(value)
-			nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
+		# for z in range(int(num_out * 0.4)):
+		#	for z0, key in enumerate(var_list):
+		#		value = random.uniform(original_min[key], original_max[key])
+		#		if original_unit[key] is not None:
+		#			value = int(round(value / original_unit[key])) * original_unit[key]
+		#		if original_min[key] is not None:
+		#			value = (original_min[key], value)[value > original_min[key]]
+		#		if original_max[key] is not None:
+		#			value = (value, original_max[key])[value > original_max[key]]
+		#		nextbatch[key].append(value)
+		#	nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
 		log_write("DEBUG: total sample size is set to " + str(len(nextbatch["title"])))
 		with open(curdir_file_win("dict.pickle"), "wb") as dest:
 			pickle.dump(nextbatch, dest, 0)
