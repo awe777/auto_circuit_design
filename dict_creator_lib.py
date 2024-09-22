@@ -1,5 +1,6 @@
 import os, random, pickle, time, math, cmath
 import numpy as np
+import csv_data_sifter
 #import purecma as pcma
 #import cma
 from numpy import linalg as npLA
@@ -371,7 +372,7 @@ def cma_es_helper_2(es, outlist, var_list, tell_limit, sample_count):
 		return es_ask
 '''
 def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True, force_length=False, raw_weight_multfunc=None, a_cov=2, c_m=1, force_reset=False):
-	prior_avgstd_limit = 20
+	prior_avgstd_limit = 7
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
 	# note to self: pickling the ES object is possible: https://github.com/CMA-ES/pycma/issues/126
@@ -416,7 +417,8 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 	make_new = force_reset
 	restart = False
 	fom_sum = sum([x[0] for x in sorted_outlist])
-	best_point = (sorted_outlist[0][0] / fom_sum, sorted_outlist[0][1])
+	# best_point = (sorted_outlist[0][0] / fom_sum, sorted_outlist[0][1])
+	best_point = (sorted_outlist[0][0], sorted_outlist[0][1])
 	try:
 		log_write("DEBUG: initial best point has an FoM of " + str(sorted_outlist[0][0]))
 		log_write("DEBUG: initial best point has an ID of " + str(sorted_outlist[0][1]["title"]))

@@ -4,7 +4,7 @@ basedir = dict_creator_lib.curdir_file_win()
 
 var_list = ["op1_stage1_pmos_w","op1_stage1_pmos_l","op1_stage1_pmos_m","op1_stage1_nmos_w","op1_stage1_nmos_l","op1_stage1_nmos_m","op1_stage2_nmos_w","op1_stage2_nmos_l","op1_stage2_nmos_m","op1_vref_nmos_w","op1_vref_nmos_l","op1_vref_nmos_m","op1_vref_pmos_w","op1_vref_pmos_l","op1_vref_pmos_m","op1_stage2_pmos_w","op1_stage2_pmos_l","op1_stage2_pmos_m","psrr_stabilizer_w","psrr_stabilizer_l","psrr_stabilizer_m","res_rr0_w","res_rr0_l","res_rr0_m","res_rr2_w","res_rr2_l","res_rr2_m"]
 original = dict(map(lambda k, v: (k, v), var_list, [10,18,4,12,1,8,8,1,4,14,8,4,5,8,4,8,4,8,2.75,4,8,1,14,1,1,8.55,2]))
-original_unit = dict([(key, (0.05, 1)[key.endswith("m")]) for key in var_list])
+original_unit = dict([(key, (0.025, 1)[key.endswith("m")]) for key in var_list])
 original_min = dict([(key, ((1, 5)[key.endswith("ratio")], 0.18 + (0, 0.04)[key.endswith("w")])[key.endswith("w") or key.endswith("l")]) for key in var_list])
 original_max = dict([(key, (20, 25)[key.endswith("w")]  / (1, 4)[key.startswith("op1_stage2")]) for key in var_list])
 assert(len(var_list) == len(original))
