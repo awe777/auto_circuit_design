@@ -43,9 +43,35 @@ try:
 			dict_creator_lib.log_write("warning: outlist list is empty")
 		length = int((2 * (4 + int(3 * math.log(len(var_list)))), sys.argv[1])[boolval])
 		dict_creator_lib.log_write("dictionary creator - CMA-ES" + (", forced length", ", using recommended length")[1 - int(boolval)])
+		best_param = None
+		best_param_temp = {}
 		#dict_creator_lib.log_write("dictionary creator - BO")
+		try:
+			list_order = None
+			col_names, table = csv_data_sifter.create_fromcsv(basedir + "result/result.csv")
+			fom1_index = csv_data_sifter.namesearch_index(col_names, ["FoM_1"])[0]
+			fom2_index = csv_data_sifter.namesearch_index(col_names, ["FoM_2"])[0]
+			time_index = csv_data_sifter.namesearch_index(col_names, ["time"])[0]
+			idex_index = csv_data_sifter.namesearch_index(col_names, ["identifier"])[0]
+			#for fom_list in csv_data_sifter.select([fom2_index, fom1_index], table): # this includes the initial circuit
+			for fom_list in csv_data_sifter.select([fom2_index, fom1_index], table, {idex_index: lambda id: id != 10000000}): # this omits the initial circuit
+				if list_order is None:
+					list_order = sorted(range(len(fom_list)), key=lambda z: fom_list[z], reverse=True)
+				else:
+					list_order = sorted(list_order, key=lambda z: fom_list[z], reverse=True)
+			best_time, best_idex = tuple([value[list_order[0]] for value in csv_data_sifter.select([time_index, idex_index], table)])
+			dict_creator_lib.log_write("DEBUG: best current (time, id):\t" + str((best_time, best_idex)))
+			col_names, table = csv_data_sifter.create_fromcsv(basedir + "result/library.csv")
+			best_param_temp = dict([(var_list[z], keyvalues[0]) for z, keyvalues in enumerate(csv_data_sifter.select([csv_data_sifter.namesearch_index(col_names, [var])[0] for var in var_list], table, {time_index:lambda x: x == best_time, idex_index: lambda x: x == best_idex}))])
+			best_param_temp["title"] = "sim_"+str(idex_index)+".sp" # remnants of old program config in the form of sim_#.sp
+			dict_creator_lib.log_write("DEBUG: best param constructed")
+			dict_creator_lib.log_write("DEBUG: all var_list data taken into account: " + str(not False in [var in best_param_temp for var in var_list]))
+			best_param = best_param_temp
+		except Exception as err:
+			dict_creator_lib.log_write("error: " + str(err) + " @ CSV sifting - " + str(best_param_temp))
+			best_param = None
 		#dict_creator_lib.log_write("dictionary creator - GA")
-		dict_creator_lib.regenerate_cma_es(length, check[1], current_context, True, boolval)
+		dict_creator_lib.regenerate_cma_es(length, check[1], current_context, best_param, True, boolval)
 		#dict_creator_lib.regenerate_ga(sys.argv[1], check[1], current_context)
 	else:
 		if boolval:
