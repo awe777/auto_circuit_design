@@ -21,7 +21,7 @@ def select(sql_select, sql_from, sql_where={}):
 	if isinstance(sql_select, int):
 		select_index = [sql_select]
 	elif sql_select == "*":
-		select_index = min([len(row) for row in sql_from])
+		select_index = range(min([len(row) for row in sql_from]))
 	else:
 		select_index = list(sql_select)
 	line_pass = [True for row in sql_from]
@@ -29,7 +29,7 @@ def select(sql_select, sql_from, sql_where={}):
 		for z, row in enumerate(sql_from):
 			if line_pass[z]:
 				line_pass[z] = bool(sql_where[key](row[key]))
-	return [[row[col] for z, row in enumerate(sql_from) if line_pass[z]] for col in sql_select]
+	return [[row[col] for z, row in enumerate(sql_from) if line_pass[z]] for col in select_index]
 	# returns data from passed rows in table in a list per selected column
 	# say, for a table like this:
 	# 0, 3, 1, 4
