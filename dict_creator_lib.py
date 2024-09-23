@@ -444,7 +444,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 					restart = prior_avg[0] >= prior_avg[-1]
 					if restart:
 						log_write("WARNING: no improvements after " + str(prior_avgstd_limit) + " cycles")
-						if prior_std[-1] > 0.8 * prior_std[0] and prior_std[-1] < 1.2 * prior_std[0]:
+						if True or (prior_std[-1] > 0.8 * prior_std[0] and prior_std[-1] < 1.2 * prior_std[0]):
 							make_new = True
 							log_write("WARNING: falling back to create()")
 						else:
