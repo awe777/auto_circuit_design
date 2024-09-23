@@ -1,6 +1,6 @@
 import os, random, pickle, time, math, cmath
 import numpy as np
-import csv_data_sifter
+#import csv_data_sifter
 #import purecma as pcma
 #import cma
 from numpy import linalg as npLA
@@ -371,8 +371,8 @@ def cma_es_helper_2(es, outlist, var_list, tell_limit, sample_count):
 	else:
 		return es_ask
 '''
-def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True, force_length=False, raw_weight_multfunc=None, a_cov=2, c_m=1, force_reset=False):
-	prior_avgstd_limit = 7
+def regenerate_cma_es(length, outlist, context=context_builder(), best_param=None, maximize=True, force_length=False, raw_weight_multfunc=None, a_cov=2, c_m=1, force_reset=False):
+	prior_avgstd_limit = 25
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
 	# note to self: pickling the ES object is possible: https://github.com/CMA-ES/pycma/issues/126
@@ -418,19 +418,25 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 	restart = False
 	fom_sum = sum([x[0] for x in sorted_outlist])
 	# best_point = (sorted_outlist[0][0] / fom_sum, sorted_outlist[0][1])
-	best_point = (sorted_outlist[0][0], sorted_outlist[0][1])
+	if best_param is None:
+		best_point = (sorted_outlist[0][0], sorted_outlist[0][1])
+	else:
+		best_point = ((-float("inf"), float("inf"))[int(maximize)], best_param)
 	try:
-		log_write("DEBUG: initial best point has an FoM of " + str(sorted_outlist[0][0]))
-		log_write("DEBUG: initial best point has an ID of " + str(sorted_outlist[0][1]["title"]))
+		log_write("DEBUG: initial best point has an FoM of " + str(best_point[0]))
+		log_write("DEBUG: initial best point has an ID of " + str(best_point[1]["title"]))
 	except Exception:
 		pass
 	try:
 		if not force_reset:
 			with open(curdir_file_win("cma_es_selfparam.pickle"), "rb") as source:
 				mean, step_sigma, cov_mat, p_sigma, p_cov, gen_count, prior_avgstd, best_point_old = pickle.load(source)
-				if best_point[0] != best_point_old[0] and (int(maximize) + int(best_point[0] > best_point_old[0]) == 1):
-					best_point = best_point_old
-					log_write("DEBUG: read data point is better than initial best point")
+				if best_param is None:
+					if best_point[0] != best_point_old[0] and (int(maximize) + int(best_point[0] > best_point_old[0]) == 1):
+						best_point = best_point_old
+						log_write("DEBUG: read data point is better than initial best point")
+				else:
+					log_write("DEBUG: uses externally-provided best point")
 				prior_avgstd.append((lambda xbar: (xbar, std([x[0] for x in sorted_outlist], xbar) / xbar))(avg([x[0] for x in sorted_outlist])))
 				if len(prior_avgstd) >= prior_avgstd_limit:
 					prior_avg, prior_std = zip(*prior_avgstd)
@@ -447,7 +453,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), maximize=True,
 		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 		make_new = True
-	log_write("DEBUG: current best point has a FoM portion of " + str(best_point[0]))
+	log_write("DEBUG: current best point has a FoM of " + str(best_point[0]))
 	if make_new:
 		mean = [avg([entry[1][key] for entry in sorted_outlist]) for key in var_list_ordered]
 		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) / 3.0
