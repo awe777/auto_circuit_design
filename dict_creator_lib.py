@@ -455,8 +455,8 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 		make_new = True
 	log_write("DEBUG: current best point has a FoM of " + str(best_point[0]))
 	if make_new:
-		mean = [avg([entry[1][key] for entry in sorted_outlist]) for key in var_list_ordered]
-		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) / 3.0
+		mean = [best_point[1][key] for key in var_list_ordered]
+		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) / 9.2
 		cov_mat = [[math.pow((0, avg([entry[1][var_list_ordered[row]] for entry in sorted_outlist]) / step_sigma)[row == col], 2) for col in range(ndim)] for row in range(ndim)]
 		p_sigma = [0 for z in range(ndim)]
 		p_cov = [0 for z in range(ndim)]
