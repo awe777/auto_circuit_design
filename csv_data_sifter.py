@@ -44,7 +44,8 @@ def create_fromcsv(filepath, force_string=False, delimiter=",", comm_sep="."):
 	table = []
 	with open(filepath, "rt") as src:
 		for z, line in enumerate(src.readlines()):
-			splitlines = [phrase.lstrip().rstrip() for phrase in line.split(delimiter)]
+			line_split = line.split(delimiter)
+			splitlines = [phrase.lstrip().rstrip() for z, phrase in enumerate(line_split) if z < len(line_split) - 1 or len(phrase.lstrip().rstrip()) > 0]
 			if z == 0:
 				col_names = splitlines
 			else:
