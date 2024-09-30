@@ -413,10 +413,11 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 		num_out = max(num_out, length)
 	log_write("DEBUG: CMA-ES sample size is set to " + str(num_out))
 	var_list_ordered = sorted(var_list)
-	sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=maximize)
+	# sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=maximize)
+	sorted_outlist = sorted(outlist, key=lambda x: x[0] * (1 - 2 * int(maximize)))
 	make_new = force_reset
 	restart = False
-	fom_sum = sum([x[0] for x in sorted_outlist])
+	# fom_sum = sum([x[0] for x in sorted_outlist])
 	# best_point = (sorted_outlist[0][0] / fom_sum, sorted_outlist[0][1])
 	if best_param is None:
 		best_point = (sorted_outlist[0][0], sorted_outlist[0][1])
@@ -441,7 +442,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 				if len(prior_avgstd) >= prior_avgstd_limit:
 					prior_avg, prior_std = zip(*prior_avgstd)
 					prior_avgstd = []
-					restart = prior_avg[0] >= prior_avg[-1]
+					restart = False and prior_avg[0] >= prior_avg[-1] # False forces no-restart
 					if restart:
 						log_write("WARNING: no improvements after " + str(prior_avgstd_limit) + " cycles")
 						if True or (prior_std[-1] > 0.8 * prior_std[0] and prior_std[-1] < 1.2 * prior_std[0]):
@@ -449,6 +450,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 							log_write("WARNING: falling back to create()")
 						else:
 							restart = False
+
 	except Exception as err:
 		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
@@ -457,7 +459,8 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 	if make_new:
 		mean = [best_point[1][key] for key in var_list_ordered]
 		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) / 9.2
-		cov_mat = [[math.pow((0, avg([entry[1][var_list_ordered[row]] for entry in sorted_outlist]) / step_sigma)[row == col], 2) for col in range(ndim)] for row in range(ndim)]
+		#cov_mat = [[math.pow((0, avg([entry[1][var_list_ordered[row]] for entry in sorted_outlist]) / step_sigma)[row == col], 2) for col in range(ndim)] for row in range(ndim)]
+		cov_mat = [[int(row == col) for col in range(ndim)] for row in range(ndim)]
 		p_sigma = [0 for z in range(ndim)]
 		p_cov = [0 for z in range(ndim)]
 		gen_count = 0
@@ -468,7 +471,8 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 			# math.gamma() is introduced in 3.2, approximation is sqrt(n) * (1 - (4n)^-1 + (21n^2)^-1)
 			default_weight = [math.log((1 + num)/ 2) - math.log(1 + z) for z in range(num)]
 			if raw_weight_multfunc is None:
-				raw_weight = [math.pow(sorted_outlist[z][0], -1 + 2 * int(maximize)) * x for z, x in enumerate(default_weight)]
+				raw_weight = [math.pow(max(1e-6, sorted_outlist[z][0]), -1 + 2 * int(maximize)) * x for z, x in enumerate(default_weight)]
+				# raw_weight = [math.pow(sorted_outlist[z][0], -1 + 2 * int(maximize)) * x for z, x in enumerate(default_weight)]
 				log_write("DEBUG: raw weight multiplier is set to "+("the reciprocal of ", "")[int(maximize)] + "its fitness value")
 			else:
 				indexable = True
@@ -489,6 +493,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 			sum_w_neg = -sum(raw_weight[mark:])
 			mu_eff_pos = sum_w_pos * sum_w_pos / sum([w * w for w in raw_weight[:mark]])
 			mu_eff_neg = sum_w_neg * sum_w_neg / sum([w * w for w in raw_weight[mark:]])
+			log_write("DEBUG: mu_eff_pos/neg: " + str((mu_eff_pos, mu_eff_neg)))
 			c_1 = a_cov / ((ndim + 1.3) ** 2 + mu_eff_pos)
 			c_cov = (4 + mu_eff_pos/ndim) / (ndim + 4 + 2 * mu_eff_pos/ndim)
 			c_mu = min(1 - c_1, a_cov * (mu_eff_pos + 1 / mu_eff_pos - 1.75) / ((ndim + 2) ** 2 + a_cov * mu_eff_pos / 2))

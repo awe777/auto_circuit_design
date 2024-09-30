@@ -73,7 +73,8 @@ try:
 			dict_creator_lib.log_write("error: " + str(err) + " @ CSV sifting - " + str(best_param_temp))
 			best_param = None
 		#dict_creator_lib.log_write("dictionary creator - GA")
-		dict_creator_lib.regenerate_cma_es(length, check[1], current_context, best_param, True, boolval)
+		#dict_creator_lib.regenerate_cma_es(length, check[1], current_context, best_param, True, boolval)
+		dict_creator_lib.regenerate_cma_es(length, check[1], current_context, best_param, True, boolval, True)
 		#dict_creator_lib.regenerate_ga(sys.argv[1], check[1], current_context)
 	else:
 		if boolval:
