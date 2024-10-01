@@ -74,14 +74,14 @@ try:
 			best_param = None
 		#dict_creator_lib.log_write("dictionary creator - GA")
 		#dict_creator_lib.regenerate_cma_es(length, check[1], current_context, best_param, True, boolval)
-		dict_creator_lib.regenerate_cma_es(length, check[1], current_context, best_param, True, boolval, True)
+		dict_creator_lib.dict_pickle_dump(dict_creator_lib.regenerate_cma_es(length, check[1], current_context, best_param, True, boolval, True))
 		#dict_creator_lib.regenerate_ga(sys.argv[1], check[1], current_context)
 	else:
 		if boolval:
 			dict_creator_lib.log_write("dictionary creator - random - does not use base value - trigger: " + str(sys.argv[2:]))
 		else:
 			dict_creator_lib.log_write("dictionary creator - random - uses base value")
-		dict_creator_lib.create(int(sys.argv[1]), boolval, current_context)
+		dict_creator_lib.dict_pickle_dump(dict_creator_lib.create(int(sys.argv[1]), boolval, current_context))
 except Exception as err:
 	dict_creator_lib.log_write("Error during dict creation: " + str(err))
 	raise

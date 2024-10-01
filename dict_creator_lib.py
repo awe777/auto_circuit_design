@@ -53,23 +53,19 @@ def getsample(fomlist, number):
 	return result
 def getcouple(fomlist):
 	return getsample(fomlist, 2)
-def crossover(dict0, dict1, nu = 13, cr = 0.8, mr = 0.8, mm = 0.01, print_debug = False):
-	if print_debug:
-		log_write("mutation rate: " + str(mr * 100) + "%")
-		log_write("mutation multiplier: " + str(mm))
-	rand = random.random()
-	beta = math.pow((2 * rand, 0.5 / (1 - rand))[rand > 0.5], 1 / (nu + 1))
-	dict2 = {}
-	dict3 = {}
-	for key in [x for x in list(dict0) if x != "title"]:
-		normals = normal_2()
-		# Liu et al. (ACM 2009) - Equation 11 mutation rate / multiplier (mr/mm)
-		dict0_value = dict0[key] * (1, 1 + mm * normals[0])[random.random() < mr]
-		dict1_value = dict1[key] * (1, 1 + mm * normals[1])[random.random() < mr]
-		# Liu et al. (ACM 2009) - crossover
-		dict2[key] = 0.5 * (dict0_value + dict1_value) + (beta / 2) * (dict0_value - dict1_value)
-		dict3[key] = 0.5 * (dict0_value + dict1_value) - (beta / 2) * (dict0_value - dict1_value)
-	return ((dict0, dict2)[random.random() < cr], (dict1, dict3)[random.random() < cr])
+def dict_pickle_dump(*tuple_dict):
+	param_list = None
+	for each_dict in tuple_dict:
+		if param_list is None:
+			param_list = list(each_dict)
+		else:
+			param_list = [params for params in param_list if params in each_dict]
+	master_dict = dict([(params, []) for params in param_list])
+	for each_dict in tuple_dict:
+		for params in param_list:
+			master_dict[params] = master_dict[params] + each_dict[params]
+	with open(curdir_file_win("dict.pickle") , "wb") as dest:
+		pickle.dump(master_dict, dest, 0)
 # kernel functions are mostly helpers for Bayesian optimization methods
 # value_input for kernel functions is stretched distance sum([alpha[z] * pow(x[z] - y[z], 2.0) for z in range(len(x))]) ** 0.5 of points x and y
 """
@@ -240,8 +236,9 @@ def create(length, full_random = False, context=context_builder()):
 		time.sleep(1e-6)
 	if count > 0:
 		log_write("".join([str(x) for x in ["DEBUG: ", count, " of ", length, " is fully randomized"]]))
-	with open(curdir_file_win("dict.pickle") , "wb") as dest:
-		pickle.dump(dictpickle, dest, 0)
+	# with open(curdir_file_win("dict.pickle") , "wb") as dest:
+	# 	pickle.dump(dictpickle, dest, 0)
+	return dictpickle
 '''
 def create_cma_es(length, full_random = False, context=context_builder()):
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
@@ -372,7 +369,7 @@ def cma_es_helper_2(es, outlist, var_list, tell_limit, sample_count):
 		return es_ask
 '''
 def regenerate_cma_es(length, outlist, context=context_builder(), best_param=None, maximize=True, force_length=False, raw_weight_multfunc=None, a_cov=2, c_m=1, force_reset=False):
-	prior_avgstd_limit = 25
+	prior_avgstd_limit = 20
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
 	# note to self: pickling the ES object is possible: https://github.com/CMA-ES/pycma/issues/126
@@ -417,6 +414,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 	sorted_outlist = sorted(outlist, key=lambda x: x[0] * (1 - 2 * int(maximize)))
 	make_new = force_reset
 	restart = False
+	nextbatch = dict([(key, []) for key in var_list + ["title"]])
 	# fom_sum = sum([x[0] for x in sorted_outlist])
 	# best_point = (sorted_outlist[0][0] / fom_sum, sorted_outlist[0][1])
 	if best_param is None:
@@ -442,7 +440,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 				if len(prior_avgstd) >= prior_avgstd_limit:
 					prior_avg, prior_std = zip(*prior_avgstd)
 					prior_avgstd = []
-					restart = False and prior_avg[0] >= prior_avg[-1] # False forces no-restart
+					restart = True and prior_avg[0] >= prior_avg[-1] # False forces no-restart
 					if restart:
 						log_write("WARNING: no improvements after " + str(prior_avgstd_limit) + " cycles")
 						if True or (prior_std[-1] > 0.8 * prior_std[0] and prior_std[-1] < 1.2 * prior_std[0]):
@@ -527,7 +525,6 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 			
 			cov_eigen_lam, cov_eigen_vec = npLA.eig(np.array(cov_mat))
 			#'''
-			nextbatch = dict([(key, []) for key in var_list + ["title"]])
 			for z in range(num_out):
 				generated = mean + step_sigma * (cov_eigen_vec @ np.diag(np.sqrt(cov_eigen_lam)) @ np.array([random.gauss(0, 1) for key in var_list]))
 			# for generated in es_ask:
@@ -556,19 +553,25 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 			#		nextbatch[key].append(value)
 			#	nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
 			log_write("DEBUG: total sample size is set to " + str(len(nextbatch["title"])))
-			with open(curdir_file_win("dict.pickle"), "wb") as dest:
-				pickle.dump(nextbatch, dest, 0)
-				log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
+			# with open(curdir_file_win("dict.pickle"), "wb") as dest:
+			# 	pickle.dump(nextbatch, dest, 0)
+			# 	log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
 	except Exception as err:
 		log_write("ERROR: error during CMA-ES, details:\t" + str(err))
 		restart = True
-		mean = [avg([entry[1][key] for entry in sorted_outlist]) for key in var_list_ordered]
-		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) / 3.0
-		cov_mat = [[math.pow((0, avg([entry[1][var_list_ordered[row]] for entry in sorted_outlist]) / step_sigma)[row == col], 2) for col in range(ndim)] for row in range(ndim)]
+		mean = [best_point[1][key] for key in var_list_ordered]
+		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) / 9.2
+		cov_mat = [[int(row == col) for col in range(ndim)] for row in range(ndim)]
 		p_sigma = [0 for z in range(ndim)]
 		p_cov = [0 for z in range(ndim)]
 		gen_count = 0
 		prior_avgstd = []
+	with open(curdir_file_win("cma_es_selfparam.pickle"), "wb") as dest:
+		if restart:
+			pickle.dump((list(mean), float(step_sigma), list(cov_mat), list(p_sigma), list(p_cov), int(gen_count), prior_avgstd, best_point), dest, 0)
+		else:
+			pickle.dump((mean.tolist(), float(step_sigma), cov_mat.tolist(), p_sigma.tolist(), p_cov.tolist(), int(gen_count), prior_avgstd, best_point), dest, 0)
+		log_write("DEBUG: successful write to " + curdir_file_win("cma_es_selfparam.pickle"))
 	if restart:
 		log_write("DEBUG: calling create() centered on best known point")
 		new_context = []
@@ -576,14 +579,10 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 		new_context.append(("original_unit", original_unit))
 		new_context.append(("original_min", original_min))
 		new_context.append(("original_max", original_max))
-		new_context.append(("random_spread", random_spread))
-		create(length, False, dict(new_context))
-	with open(curdir_file_win("cma_es_selfparam.pickle"), "wb") as dest:
-		if restart:
-			pickle.dump((list(mean), float(step_sigma), list(cov_mat), list(p_sigma), list(p_cov), int(gen_count), prior_avgstd, best_point), dest, 0)
-		else:
-			pickle.dump((mean.tolist(), float(step_sigma), cov_mat.tolist(), p_sigma.tolist(), p_cov.tolist(), int(gen_count), prior_avgstd, best_point), dest, 0)
-		log_write("DEBUG: successful write to " + curdir_file_win("cma_es_selfparam.pickle"))
+		new_context.append(("random_spread", random_spread * 0.5))
+		return create(length, False, dict(new_context))
+	else:
+		return nextbatch
 '''
 def regenerate_cma_es_lib(length, outlist, context=context_builder(), force_reset=False):
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
@@ -791,9 +790,27 @@ def regenerate_pso(length, outlist, w, phi_p = 2, phi_g = 2, context=context_bui
 			nextbatch[key].append(value)
 		if clamping:
 			log_write("warning: clamping detected for " + particle_title)
-	with open(curdir_file_win("dict.pickle"), "wb") as dest:
-		pickle.dump(nextbatch, dest, 0)
+	# with open(curdir_file_win("dict.pickle"), "wb") as dest:
+	# 	pickle.dump(nextbatch, dest, 0)
+	return nextbatch
 def regenerate_ga(length, outlist, context=context_builder(), use_prev = False):
+	def crossover(dict0, dict1, nu = 13, cr = 0.8, mr = 0.8, mm = 0.01, print_debug = False):
+		if print_debug:
+			log_write("mutation rate: " + str(mr * 100) + "%")
+			log_write("mutation multiplier: " + str(mm))
+		rand = random.random()
+		beta = math.pow((2 * rand, 0.5 / (1 - rand))[rand > 0.5], 1 / (nu + 1))
+		dict2 = {}
+		dict3 = {}
+		for key in [x for x in list(dict0) if x != "title"]:
+			normals = normal_2()
+			# Liu et al. (ACM 2009) - Equation 11 mutation rate / multiplier (mr/mm)
+			dict0_value = dict0[key] * (1, 1 + mm * normals[0])[random.random() < mr]
+			dict1_value = dict1[key] * (1, 1 + mm * normals[1])[random.random() < mr]
+			# Liu et al. (ACM 2009) - crossover
+			dict2[key] = 0.5 * (dict0_value + dict1_value) + (beta / 2) * (dict0_value - dict1_value)
+			dict3[key] = 0.5 * (dict0_value + dict1_value) - (beta / 2) * (dict0_value - dict1_value)
+		return ((dict0, dict2)[random.random() < cr], (dict1, dict3)[random.random() < cr])
 	assert type(int(length)) == type(0)
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
 	var_list = sorted(list(original))
@@ -856,8 +873,9 @@ def regenerate_ga(length, outlist, context=context_builder(), use_prev = False):
 						value = (value, original_max[key])[value > original_max[key]]
 					nextbatch[key].append(value)
 			fill = fill + 2
-	with open(curdir_file_win("dict.pickle"), "wb") as dest:
-		pickle.dump(nextbatch, dest, 0)
+	# with open(curdir_file_win("dict.pickle"), "wb") as dest:
+	# 	pickle.dump(nextbatch, dest, 0)
+	return nextbatch
 try:
 	from bayes_opt import BayesianOptimization # IMPORTANT: REPLACE MODULE WITH UP-TO-DATE SOURCE: https://github.com/bayesian-optimization/BayesianOptimization
 	#from bayes_opt import acquisition
@@ -907,7 +925,8 @@ try:
 			fill = fill + 1
 		with open(curdir_file_win("bayes_opt_inst.pickle"), "wb") as dest:
 			pickle.dump(bayes_opt_inst, dest, 0)
-		with open(curdir_file_win("dict.pickle"), "wb") as dest:
-			pickle.dump(nextbatch, dest, 0)
+		# with open(curdir_file_win("dict.pickle"), "wb") as dest:
+		# 	pickle.dump(nextbatch, dest, 0)
+		return nextbatch
 except Exception:
 	log_write("WARNING: Bayesian Optimization module is unavailable")
