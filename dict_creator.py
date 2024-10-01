@@ -41,8 +41,9 @@ try:
 	if check[0]:
 		if len(check[1]) == 0:
 			dict_creator_lib.log_write("warning: outlist list is empty")
-		length = int((2 * (4 + int(3 * math.log(len(var_list)))), sys.argv[1])[boolval])
-		dict_creator_lib.log_write("dictionary creator - CMA-ES" + (", forced length", ", using recommended length")[1 - int(boolval)])
+		length = int(sys.argv[1])
+		cma_es_len = int(2 * (4 + int(3 * math.log(len(var_list)))))
+		dict_creator_lib.log_write("dictionary creator - CMA-ES using recommended length (" + str(cma_es_len) + ")" + ("", ", accompanied by GA - " + str(length))[1 - int(boolval)])
 		best_param = None
 		best_param_temp = {}
 		#dict_creator_lib.log_write("dictionary creator - BO")
@@ -74,7 +75,11 @@ try:
 			best_param = None
 		#dict_creator_lib.log_write("dictionary creator - GA")
 		#dict_creator_lib.regenerate_cma_es(length, check[1], current_context, best_param, True, boolval)
-		dict_creator_lib.dict_pickle_dump(dict_creator_lib.regenerate_cma_es(length, check[1], current_context, best_param, True, boolval, True))
+		cma_es_dict = dict_creator_lib.regenerate_cma_es(cma_es_len, check[1], current_context, best_param, True, boolval, True)
+		if boolval or cma_es_len >= length: # True forces CMA-ES only
+			dict_creator_lib.dict_pickle_dump(cma_es_dict)
+		else:
+			dict_creator_lib.dict_pickle_dump(cma_es_dict, dict_creator_lib.regenerate_ga(length - cma_es_len, check[1], current_context))
 		#dict_creator_lib.regenerate_ga(sys.argv[1], check[1], current_context)
 	else:
 		if boolval:
