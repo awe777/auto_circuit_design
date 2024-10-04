@@ -7,6 +7,7 @@
 *.sp
 *.env
 .venv
+*.lnk
 run*.py
 result*/
 sandbox*/

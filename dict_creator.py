@@ -1,5 +1,15 @@
 import sys, pickle, math, dict_creator_lib, csv_data_sifter
 # import random
+def measform3(x):
+	try:
+		return str(x * pow(10, -int(math.floor(math.log10(abs(x))))))+"e"+str(int(math.floor(math.log10(abs(x)))))
+	except Exception:
+		return str(x)
+def measform3_short(x):
+	try:
+		return (lambda l, m, r: l[:5 + (0, 1)[int(l.startswith("-"))]] + m + r)(*measform3(x).partition("e")).replace("\'", "")
+	except Exception:
+		return str(x).replace("\'", "")
 basedir = dict_creator_lib.curdir_file_win()
 
 var_list = ["op1_stage1_pmos_w","op1_stage1_pmos_l","op1_stage1_pmos_m","op1_stage1_nmos_w","op1_stage1_nmos_l","op1_stage1_nmos_m","op1_stage2_nmos_w","op1_stage2_nmos_l","op1_stage2_nmos_m","op1_vref_nmos_w","op1_vref_nmos_l","op1_vref_nmos_m","op1_vref_pmos_w","op1_vref_pmos_l","op1_vref_pmos_m","op1_stage2_pmos_w","op1_stage2_pmos_l","op1_stage2_pmos_m","psrr_stabilizer_w","psrr_stabilizer_l","psrr_stabilizer_m","res_rr0_w","res_rr0_l","res_rr0_m","res_rr2_w","res_rr2_l","res_rr2_m"]
@@ -63,7 +73,7 @@ try:
 			best_time, best_idex = tuple([value[list_order[0]] for value in csv_data_sifter.select([time_index, idex_index], table, {idex_index: lambda id: id != 10000000})])
 			fom1_best, fom2_best = tuple([value[list_order[0]] for value in csv_data_sifter.select([fom1_index, fom2_index], table, {idex_index: lambda id: id != 10000000})])
 			dict_creator_lib.log_write("DEBUG: best current (time, id):\t" + str((best_time, best_idex)))
-			dict_creator_lib.log_write("DEBUG: best FoM(s):\t" + str((fom1_best, fom2_best)))
+			dict_creator_lib.log_write("DEBUG: best FoM(s):\t\t" + str((measform3_short(fom1_best), measform3_short(fom2_best))).replace("\'", ""))
 			col_names, table = csv_data_sifter.create_fromcsv(basedir + "result/library.csv")
 			best_param_temp = dict([(var_list[z], keyvalues[0]) for z, keyvalues in enumerate(csv_data_sifter.select([csv_data_sifter.namesearch_index(col_names, [var])[0] for var in var_list], table, {time_index:lambda x: x == best_time, idex_index: lambda x: x == best_idex}))])
 			best_param_temp["title"] = "sim_"+str(best_idex)+".sp" # remnants of old program config in the form of sim_#.sp
