@@ -53,7 +53,7 @@ try:
 			dict_creator_lib.log_write("warning: outlist list is empty")
 		length = int(sys.argv[1])
 		cma_es_len = int(2 * (4 + int(3 * math.log(len(var_list)))))
-		dict_creator_lib.log_write("dictionary creator - CMA-ES using recommended length (" + str(cma_es_len) + ")" + ("", ", accompanied by GA - " + str(length))[1 - int(boolval)])
+		dict_creator_lib.log_write("dictionary creator - CMA-ES using recommended length (" + str(cma_es_len) + ")" + ("", ", accompanied by GA - " + str(max(length - cma_es_len, 0)))[1 - int(boolval)])
 		best_param = None
 		best_param_temp = {}
 		#dict_creator_lib.log_write("dictionary creator - BO")
@@ -77,15 +77,15 @@ try:
 			col_names, table = csv_data_sifter.create_fromcsv(basedir + "result/library.csv")
 			best_param_temp = dict([(var_list[z], keyvalues[0]) for z, keyvalues in enumerate(csv_data_sifter.select([csv_data_sifter.namesearch_index(col_names, [var])[0] for var in var_list], table, {time_index:lambda x: x == best_time, idex_index: lambda x: x == best_idex}))])
 			best_param_temp["title"] = "sim_"+str(best_idex)+".sp" # remnants of old program config in the form of sim_#.sp
-			dict_creator_lib.log_write("DEBUG: best param constructed")
-			dict_creator_lib.log_write("DEBUG: all var_list data taken into account: " + str(not False in [var in best_param_temp for var in var_list]))
+			# dict_creator_lib.log_write("DEBUG: best param constructed")
+			# dict_creator_lib.log_write("DEBUG: all var_list data taken into account: " + str(not False in [var in best_param_temp for var in var_list]))
 			best_param = best_param_temp
 		except Exception as err:
 			dict_creator_lib.log_write("error: " + str(err) + " @ CSV sifting - " + str(best_param_temp))
 			best_param = None
 		#dict_creator_lib.log_write("dictionary creator - GA")
 		#dict_creator_lib.regenerate_cma_es(length, check[1], current_context, best_param, True, boolval)
-		cma_es_dict = dict_creator_lib.regenerate_cma_es(cma_es_len, check[1], current_context, best_param, True, boolval, True)
+		cma_es_dict = dict_creator_lib.regenerate_cma_es(cma_es_len, check[1], current_context, best_param, True, boolval, True, not boolval)
 		if boolval or cma_es_len >= length: # True forces CMA-ES only
 			dict_creator_lib.dict_pickle_dump(cma_es_dict)
 		else:

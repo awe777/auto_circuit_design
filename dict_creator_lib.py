@@ -368,7 +368,7 @@ def cma_es_helper_2(es, outlist, var_list, tell_limit, sample_count):
 	else:
 		return es_ask
 '''
-def regenerate_cma_es(length, outlist, context=context_builder(), best_param=None, maximize=True, force_length=False, raw_weight_multfunc=None, a_cov=2, c_m=1, force_reset=False):
+def regenerate_cma_es(length, outlist, context=context_builder(), best_param=None, maximize=True, force_length=False, raw_weight_multfunc=None, disable_restart=False, a_cov=2, c_m=1, force_reset=False):
 	prior_avgstd_limit = 20
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
@@ -408,7 +408,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 	num_out = num
 	if force_length:
 		num_out = max(num_out, length)
-	log_write("DEBUG: CMA-ES sample size is set to " + str(num_out))
+	# log_write("DEBUG: CMA-ES sample size is set to " + str(num_out))
 	var_list_ordered = sorted(var_list)
 	# sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=maximize)
 	sorted_outlist = sorted(outlist, key=lambda x: x[0] * (1 - 2 * int(maximize)))
@@ -422,7 +422,8 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 	else:
 		best_point = ((-float("inf"), float("inf"))[int(maximize)], best_param)
 	try:
-		log_write("DEBUG: initial best point has an FoM of " + str(best_point[0]))
+		if abs(best_point[0]) != float("inf"):
+			log_write("DEBUG: initial best point has an FoM of " + str(best_point[0]))
 		log_write("DEBUG: initial best point has an ID of " + str(best_point[1]["title"]))
 	except Exception:
 		pass
@@ -440,12 +441,12 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 				if len(prior_avgstd) >= prior_avgstd_limit:
 					prior_avg, prior_std = zip(*prior_avgstd)
 					prior_avgstd = []
-					restart = True and prior_avg[0] >= prior_avg[-1] # False forces no-restart
+					restart = prior_avg[0] >= prior_avg[-1] and not disable_restart # False forces no-restart
 					if restart:
 						log_write("WARNING: no improvements after " + str(prior_avgstd_limit) + " cycles")
 						if True or (prior_std[-1] > 0.8 * prior_std[0] and prior_std[-1] < 1.2 * prior_std[0]):
 							make_new = True
-							log_write("WARNING: falling back to create()")
+							# log_write("WARNING: falling back to create()")
 						else:
 							restart = False
 
@@ -453,7 +454,10 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 		make_new = True
-	log_write("DEBUG: current best point has a FoM of " + str(best_point[0]))
+	if abs(best_point[0]) != float("inf"):
+		log_write("DEBUG: current best point has a FoM of " + str(best_point[0]))
+	else:
+		log_write("DEBUG: best point is externally-provided")
 	if make_new:
 		mean = [best_point[1][key] for key in var_list_ordered]
 		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) / 9.2
@@ -552,7 +556,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 			#			value = (value, original_max[key])[value > original_max[key]]
 			#		nextbatch[key].append(value)
 			#	nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
-			log_write("DEBUG: total sample size is set to " + str(len(nextbatch["title"])))
+			# log_write("DEBUG: total sample size is set to " + str(len(nextbatch["title"])))
 			# with open(curdir_file_win("dict.pickle"), "wb") as dest:
 			# 	pickle.dump(nextbatch, dest, 0)
 			# 	log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
@@ -580,7 +584,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 		new_context.append(("original_min", original_min))
 		new_context.append(("original_max", original_max))
 		new_context.append(("random_spread", random_spread * 0.5))
-		return create(length, False, dict(new_context))
+		return create(num_out, False, dict(new_context))
 	else:
 		return nextbatch
 '''
