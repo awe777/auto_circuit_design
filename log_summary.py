@@ -34,5 +34,5 @@ for folder_root in sorted(os.scandir(os.getcwd().replace("\\","/")), key=lambda 
 				if "generation count" in lines:
 					z = z + 1
 					line = lines.rstrip().lstrip()
-		print(''.join(["(", str(z), ") ", line, "\n"]))
+		print(''.join(["(", str(z - 1), ") ", line, "\n"]))
 		
