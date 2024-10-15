@@ -1,5 +1,5 @@
 # import csv_data_sifter, os, math
-import os
+import os, math
 def measform3(x):
 	try:
 		return str(x * pow(10, -int(math.floor(math.log10(abs(x))))))+"e"+str(int(math.floor(math.log10(abs(x)))))
@@ -10,7 +10,7 @@ def measform3_short(x):
 		return (lambda l, m, r: l[:5 + (0, 1)[int(l.startswith("-"))]] + m + r)(*measform3(x).partition("e")).replace("\'", "")
 	except Exception:
 		return str(x).replace("\'", "")
-print("\n")
+# print("\n")
 for folder_root in sorted(os.scandir(os.getcwd().replace("\\","/")), key=lambda item: item.name):
 	if folder_root.is_dir() and folder_root.name != "__pycache__":
 		# print(folder_root.name + "\n")
@@ -29,8 +29,10 @@ for folder_root in sorted(os.scandir(os.getcwd().replace("\\","/")), key=lambda 
 		# 				list_order = sorted(list_order, key=lambda z: fom_list[z], reverse=True)
 		# 		print("".join(["(" + str(z) + ") " + str((x[list_order[0]], measform3_short(x[list_order[0]]))[int(z == 3 or z == 4)]) + ", " for z, x in enumerate(csv_data_sifter.select("*", table, {1: lambda id: id != 10000000}))])[:-2] + "\n")
 		with open(folder_root.path.replace("\\","/") + "/run.log", "rt") as logfile:
+			z = 0
 			for lines in logfile.readlines():
 				if "generation count" in lines:
+					z = z + 1
 					line = lines.rstrip().lstrip()
-		print(line + "\n")
+		print(''.join(["(", str(z), ") ", line, "\n"]))
 		
