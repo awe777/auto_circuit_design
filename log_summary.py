@@ -1,4 +1,5 @@
-import csv_data_sifter, os, math
+# import csv_data_sifter, os, math
+import os
 def measform3(x):
 	try:
 		return str(x * pow(10, -int(math.floor(math.log10(abs(x))))))+"e"+str(int(math.floor(math.log10(abs(x)))))
@@ -10,7 +11,7 @@ def measform3_short(x):
 	except Exception:
 		return str(x).replace("\'", "")
 print("\n")
-for folder_root in os.scandir(os.getcwd().replace("\\","/")):
+for folder_root in sorted(os.scandir(os.getcwd().replace("\\","/")), key=lambda item: item.name):
 	if folder_root.is_dir() and folder_root.name != "__pycache__":
 		# print(folder_root.name + "\n")
 		print(folder_root.name)
