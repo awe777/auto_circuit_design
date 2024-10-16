@@ -16,6 +16,7 @@ for folder_root in sorted(os.scandir(os.getcwd().replace("\\","/")), key=lambda 
 		# print(folder_root.name + "\n")
 		print(folder_root.name)
 		line = ""
+		fom = ""
 		# for folder_env in os.scandir(folder_root.path.replace("\\","/")):
 		# 	if folder_env.is_dir():
 		# 		print(folder_env.name)
@@ -34,5 +35,8 @@ for folder_root in sorted(os.scandir(os.getcwd().replace("\\","/")), key=lambda 
 				if "generation count" in lines:
 					z = z + 1
 					line = lines.rstrip().lstrip()
-		print(''.join(["(", str(z - 1), ") ", line, "\n"]))
+				if "best FoM(s)" in lines:
+					fom = lines.rstrip().lstrip()
+		print(''.join(["(", str(z - 1), ") ", line]))
+		print(''.join(["(", str(z - 1), ") ", fom, "\n"]))
 		
