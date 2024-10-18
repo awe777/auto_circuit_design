@@ -370,6 +370,20 @@ def cma_es_helper_2(es, outlist, var_list, tell_limit, sample_count):
 '''
 def regenerate_cma_es(length, outlist, context=context_builder(), best_param=None, maximize=True, force_length=False, raw_weight_multfunc=None, disable_restart=False, a_cov=2, c_m=1, force_reset=False):
 	prior_avgstd_limit = 20
+	disable_restart_actual = False
+	if isinstance(disable_restart, bool):
+		disable_restart_actual = disable_restart
+	else:
+		try:
+			prior_avgstd_limit = int(disable_restart)
+		except Exception:
+			pass
+		disable_restart_actual = prior_avgstd_limit == 0
+		if disable_restart_actual:
+			prior_avgstd_limit = 20
+	if prior_avgstd_limit < 10:
+		prior_avgstd_limit = 10
+	
 	# WARNING: VERY DIFFICULT TO PORT TO AIR-GAPPED SYSTEMS
 	# thinking of implementing this instead: https://github.com/CMA-ES/pycma/tree/development
 	# note to self: pickling the ES object is possible: https://github.com/CMA-ES/pycma/issues/126
@@ -441,7 +455,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 				if len(prior_avgstd) >= prior_avgstd_limit:
 					prior_avg, prior_std = zip(*prior_avgstd)
 					prior_avgstd = []
-					restart = prior_avg[0] >= prior_avg[-1] and not disable_restart # False forces no-restart
+					restart = prior_avg[0] >= prior_avg[-1] and not disable_restart_actual # False forces no-restart
 					if restart:
 						log_write("WARNING: no improvements after " + str(prior_avgstd_limit) + " cycles")
 						if True or (prior_std[-1] > 0.8 * prior_std[0] and prior_std[-1] < 1.2 * prior_std[0]):

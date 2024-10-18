@@ -85,7 +85,7 @@ try:
 			best_param = None
 		#dict_creator_lib.log_write("dictionary creator - GA")
 		#dict_creator_lib.regenerate_cma_es(length, check[1], current_context, best_param, True, boolval)
-		cma_es_dict = dict_creator_lib.regenerate_cma_es(cma_es_len, check[1], current_context, best_param, True, boolval, True, not boolval)
+		cma_es_dict = dict_creator_lib.regenerate_cma_es(cma_es_len, check[1], current_context, best_param, True, boolval, True, 20)
 		if boolval or cma_es_len >= length: # True forces CMA-ES only
 			dict_creator_lib.dict_pickle_dump(cma_es_dict)
 		else:
