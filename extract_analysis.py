@@ -7,14 +7,14 @@ def log_write(string):
 	logfile.write("\n" + output_str)
 	logfile.close()
 def sub_call(string):
-	log_write("calling \'" + str(string) + "\' on shell")
+	log_write("calling \'" + str(string) + "\' on PowerShell 7")
 	subprocess.call(str(string), shell=True)
 def sub_popen(string, popen_in=None):
-	log_write("calling \'" + str(string) + "\' on shell, returning output to program")
+	log_write("calling \'" + str(string) + "\' on PowerShell 7, returning output to program")
 	if popen_in is not None:
 		popen_in = str(popen_in)
 		log_write("\'"+popen_in+"\' will be automatically inputted in the program call above")
-	return subprocess.Popen(str(string), shell=True, stdin=popen_in, stdout=subprocess.PIPE).communicate()[0]
+	return subprocess.Popen(str(string), shell=True, stdin=popen_in, stdout=subprocess.PIPE).communicate()[0].decode()
 def avg(inputlist):
 	return sum(inputlist) / float(len(inputlist))
 def std(inputlist):
@@ -295,5 +295,5 @@ if True:
 	except Exception:
 		log_write(str(sys.exc_info()[0]) + " @ CSV library content write: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))
 		raise
-	sub_call("".join(["cd ",basedir,"; rm -rf temp"]))
-	sub_call("".join(["cd ",basedir,"; rm -rf output/"]))
+	sub_call("".join(["cd ",basedir,"; Remove-Item -Recurse -Force temp"]))
+	sub_call("".join(["cd ",basedir,"; Remove-Item -Recurse -Force output/"]))
