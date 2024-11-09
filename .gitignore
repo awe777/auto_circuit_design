@@ -12,3 +12,4 @@ run*.py
 result*/
 output*/
 sandbox*/
+__pycache__/
