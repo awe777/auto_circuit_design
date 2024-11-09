@@ -8,7 +8,7 @@ def log_write(string):
 	logfile.close()
 def sub_call(string):
 	log_write("calling \'" + str(string) + "\' on PowerShell 7")
-	subprocess.call(str(string), shell=True)
+	subprocess.call("pwsh -Command "+str(string), shell=True)
 def samelen_dict(inputdict):
 	max_length = 0
 	for key in inputdict:

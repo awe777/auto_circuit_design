@@ -8,13 +8,13 @@ def log_write(string):
 	logfile.close()
 def sub_call(string):
 	log_write("calling \'" + str(string) + "\' on PowerShell 7")
-	subprocess.call(str(string), shell=True)
+	subprocess.call("pwsh -Command "+str(string), shell=True)
 def sub_popen(string, popen_in=None):
 	log_write("calling \'" + str(string) + "\' on PowerShell 7, returning output to program")
 	if popen_in is not None:
 		popen_in = str(popen_in)
 		log_write("\'"+popen_in+"\' will be automatically inputted in the program call above")
-	return subprocess.Popen(str(string), shell=True, stdin=popen_in, stdout=subprocess.PIPE).communicate()[0].decode()
+	return subprocess.Popen("pwsh -Command "+str(string), shell=True, stdin=popen_in, stdout=subprocess.PIPE).communicate()[0].decode()
 def avg(inputlist):
 	return sum(inputlist) / float(len(inputlist))
 def std(inputlist):
