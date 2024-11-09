@@ -38,7 +38,6 @@ def mainrun(destname):
 		log_write(str(sys.exc_info()[0]) + " @ pickle load: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))
 		raise
 	sub_call(''.join(["cd \"",basedir.replace("/", "\\"),"\"; rm dict.pickle"]))
-	old_times = []
 	try:
 		row, dict_ = samelen_dict(dictionary)
 		dest = open(basedir + destname, "wt")
@@ -47,12 +46,16 @@ def mainrun(destname):
 			for key in dict_:
 				if key == "title":
 					trunc_time = dict_[key][z][max(dict_[key][z].index("_") + 1, dict_[key][z].index(".") - 7):dict_[key][z].index(".")]
-					while int(trunc_time) in old_times:
-						trunc_time = max(old_times) + 1
-					old_times.append(int(trunc_time))
-					dest.write(".param creation_time="+str(int((0, 0)["selectedparents.pickle" in os.listdir(basedir)]) + int(int(trunc_time) % int(1e7))).zfill(7)+"\n")
+					if not "selectedparents.pickle" in os.listdir(basedir):
+						trunc_time = "2" + trunc_time.zfill(7)
+					dest.write(".param creation_time="+str(int(trunc_time))+"\n")
 				else:
-					dest.write(".param "+key+"="+str((round(dict_[key][z]*1000)/1000, int(dict_[key][z]))[dict_[key][z] == int(dict_[key][z])])+"\n")
+					if "." in str(dict_[key][z]):
+						dict_key_z = str(dict_[key][z])
+						dict_key_z = dict_key_z[:dict_key_z.index(".") + 3]
+						dest.write(".param "+key+"="+dict_key_z+"\n")
+					else:
+						dest.write(".param "+key+"="+str(dict_[key][z])+"\n")
 		dest.close()
 	except Exception:
 		log_write(str(sys.exc_info()[0]) + " @ write: " + str(sys.exc_info()[1]) + " > " + str(sys.exc_info()[2]))
