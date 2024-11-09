@@ -10,4 +10,5 @@
 *.lnk
 run*.py
 result*/
+output*/
 sandbox*/
