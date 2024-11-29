@@ -12,10 +12,9 @@ def curdir_file_win(filename="", force_dir=None):
     return (str(force_dir), os.getcwd().replace("\\", "/"))[force_dir is None] + "/" + str(filename)
 def log_write(string):
 	output_str= str(int(time.time())) + ",;\t,;" + string
-	print(output_str[:output_str.index(",")] + ":\t" + string)
-	logfile = open(curdir_file_win("run.log"), "at") # "run.log"
-	logfile.write("\n" + output_str)
-	logfile.close()
+	# print(output_str[:output_str.index(",")] + ":\t" + string)
+	with open(curdir_file_win("run.log"), "at") as logfile: # "run.log"
+		logfile.write("\n" + output_str)
 # mathematic functions
 def avg(inputlist):
 	return sum(inputlist) / float(len(inputlist))
@@ -262,10 +261,10 @@ def create_cma_es(length, full_random = False, context=context_builder()):
 		nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
 	with open(curdir_file_win("cma_es_param.pickle"), "wb") as cma_obj_source:
 		pickle.dump(es, cma_obj_source, 0)
-		log_write("DEBUG: successful write to " + curdir_file_win("cma_es_param.pickle"))
+		#log_write("DEBUG: successful write to " + curdir_file_win("cma_es_param.pickle"))
 	with open(curdir_file_win("dict.pickle"), "wb") as dest:
 		pickle.dump(nextbatch, dest, 0)
-		log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
+		#log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
 def cma_es_helper(es, outlist, var_list, tell_limit, sample_count):
 	es_ask = []
 	es_x = []
@@ -302,17 +301,17 @@ def cma_es_helper(es, outlist, var_list, tell_limit, sample_count):
 				entry_added = True
 	except Exception as err:
 		if not entry_added:
-			log_write("error during telling sequence with no successful tells: " + str(tell_limit))
+			#log_write("error during telling sequence with no successful tells: " + str(tell_limit))
 			raise
 		else:
-			log_write("error during telling sequence with at least 1 successful tell")
-			log_write("error details: " + str(err))
+			#log_write("error during telling sequence with at least 1 successful tell")
+			#log_write("error details: " + str(err))
 	es_ask = es_ask + list(es.ask())
 	while len(es_ask) < sample_count:
 		es_ask = es_ask + list(es.ask())
-	log_write("DEBUG: # of entries in es_ask:\t" + str(len(es_ask)))
+	#log_write("DEBUG: # of entries in es_ask:\t" + str(len(es_ask)))
 	if len(es_ask) == 0:
-		log_write("ERROR: failed to execute cma_es_helper, output list is empty")
+		#log_write("ERROR: failed to execute cma_es_helper, output list is empty")
 		raise RuntimeError("failed to execute cma_es_helper, output list is empty")
 	else:
 		return es_ask
@@ -354,16 +353,16 @@ def cma_es_helper_2(es, outlist, var_list, tell_limit, sample_count):
 				es_ask = es_ask + list(es.ask())
 	except Exception as err:
 		if len(es_ask) == 0:
-			log_write("error during telling sequence with no successful tells: " + str(tell_limit))
+			#log_write("error during telling sequence with no successful tells: " + str(tell_limit))
 			raise
 		else:
-			log_write("error during telling sequence with at least 1 successful tell")
-			log_write("error details: " + str(err))
+			#log_write("error during telling sequence with at least 1 successful tell")
+			#log_write("error details: " + str(err))
 	while len(es_ask) < sample_count:
 		es_ask = es_ask + list(es.ask())
-	log_write("DEBUG: # of entries in es_ask:\t" + str(len(es_ask)))
+	#log_write("DEBUG: # of entries in es_ask:\t" + str(len(es_ask)))
 	if len(es_ask) == 0:
-		log_write("ERROR: failed to execute cma_es_helper_2, output list is empty")
+		#log_write("ERROR: failed to execute cma_es_helper_2, output list is empty")
 		raise RuntimeError("failed to execute cma_es_helper_2, output list is empty")
 	else:
 		return es_ask
@@ -396,12 +395,12 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 	# 			es = pickle.load(cma_obj_source)
 	# 			assert type(es) == pcma.CMAES
 	# 	else:
-	# 		log_write("force reset enabled")
-	# 		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
+	# 		#log_write("force reset enabled")
+	# 		#log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 	# 		es = pcma.CMAES([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.5 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]))
 	# except OSError as err:
-	# 	log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
-	# 	log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
+	# 	#log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
+	# 	#log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 	# 	#es = pcma.CMAES([original[key] for key in var_list], 0.5, 2 * len(var_list))
 	# 	#es = pcma.CMAES([original[key] for key in var_list], 0.5)
 	# 	es = pcma.CMAES([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.4 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]))
@@ -409,7 +408,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 	# try:
 	# 	es_ask = cma_es_helper_2(es, outlist, var_list, len(es.params.weights), num)
 	# except Exception as err:
-	# 	log_write("retrying with es.params.mu")
+	# 	#log_write("retrying with es.params.mu")
 	# 	es_ask = cma_es_helper_2(es, outlist, var_list, es.params.mu, num)
 	
 	# outlist is a list of [FoM, dict([(key in var_list + ["title"], value)])]
@@ -422,7 +421,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 	num_out = num
 	if force_length:
 		num_out = max(num_out, length)
-	# log_write("DEBUG: CMA-ES sample size is set to " + str(num_out))
+	# #log_write("DEBUG: CMA-ES sample size is set to " + str(num_out))
 	var_list_ordered = sorted(var_list)
 	# sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=maximize)
 	sorted_outlist = sorted(outlist, key=lambda x: x[0] * (1 - 2 * int(maximize)))
@@ -437,8 +436,9 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 		best_point = ((-float("inf"), float("inf"))[int(maximize)], best_param)
 	try:
 		if abs(best_point[0]) != float("inf"):
-			log_write("DEBUG: initial best point has an FoM of " + str(best_point[0]))
-		log_write("DEBUG: initial best point has an ID of " + str(best_point[1]["title"]))
+			#log_write("DEBUG: initial best point has an FoM of " + str(best_point[0]))
+			pass
+		#log_write("DEBUG: initial best point has an ID of " + str(best_point[1]["title"]))
 	except Exception:
 		pass
 	try:
@@ -448,30 +448,30 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 				if best_param is None:
 					if best_point[0] != best_point_old[0] and (int(maximize) + int(best_point[0] > best_point_old[0]) == 1):
 						best_point = best_point_old
-						log_write("DEBUG: read data point is better than initial best point")
-				else:
-					log_write("DEBUG: uses externally-provided best point")
+						#log_write("DEBUG: read data point is better than initial best point")
+				#else:
+					#log_write("DEBUG: uses externally-provided best point")
 				prior_avgstd.append((lambda xbar: (xbar, std([x[0] for x in sorted_outlist], xbar) / xbar))(avg([x[0] for x in sorted_outlist])))
 				if len(prior_avgstd) >= prior_avgstd_limit:
 					prior_avg, prior_std = zip(*prior_avgstd)
 					prior_avgstd = []
 					restart = prior_avg[0] >= prior_avg[-1] and not disable_restart_actual # False forces no-restart
 					if restart:
-						log_write("WARNING: no improvements after " + str(prior_avgstd_limit) + " cycles")
+						#log_write("WARNING: no improvements after " + str(prior_avgstd_limit) + " cycles")
 						if True or (prior_std[-1] > 0.8 * prior_std[0] and prior_std[-1] < 1.2 * prior_std[0]):
 							make_new = True
-							# log_write("WARNING: falling back to create()")
+							# #log_write("WARNING: falling back to create()")
 						else:
 							restart = False
 
 	except Exception as err:
-		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
-		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
+		#log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
+		#log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 		make_new = True
-	if abs(best_point[0]) != float("inf"):
-		log_write("DEBUG: current best point has a FoM of " + str(best_point[0]))
-	else:
-		log_write("DEBUG: best point is externally-provided")
+	#if abs(best_point[0]) != float("inf"):
+		#log_write("DEBUG: current best point has a FoM of " + str(best_point[0]))
+	#else:
+		#log_write("DEBUG: best point is externally-provided")
 	if make_new:
 		mean = [best_point[1][key] for key in var_list_ordered]
 		step_sigma = avg([original_max[key] - original_min[key] for key in var_list_ordered]) / 9.2
@@ -489,27 +489,27 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 			if raw_weight_multfunc is None:
 				raw_weight = [math.pow(max(1e-6, sorted_outlist[z][0]), -1 + 2 * int(maximize)) * x for z, x in enumerate(default_weight)]
 				# raw_weight = [math.pow(sorted_outlist[z][0], -1 + 2 * int(maximize)) * x for z, x in enumerate(default_weight)]
-				log_write("DEBUG: raw weight multiplier is set to "+("the reciprocal of ", "")[int(maximize)] + "its fitness value")
+				#log_write("DEBUG: raw weight multiplier is set to "+("the reciprocal of ", "")[int(maximize)] + "its fitness value")
 			else:
 				indexable = True
 				try:
 					raw_weight = [raw_weight_multfunc[z] * x for z, x in enumerate(default_weight)]
-					log_write("DEBUG: raw weight multiplier is set to an input list")
+					#log_write("DEBUG: raw weight multiplier is set to an input list")
 				except Exception:
 					indexable = False
 				if not indexable:
 					try:
 						raw_weight = [raw_weight_multfunc(z) * x for z, x in enumerate(default_weight)]
-						log_write("DEBUG: raw weight multiplier is set to an input function")
+						#log_write("DEBUG: raw weight multiplier is set to an input function")
 					except Exception:
 						raw_weight = [1 * x for z, x in enumerate(default_weight)]
-						log_write("DEBUG: raw weight multiplier is set to 1 as fallback")
+						#log_write("DEBUG: raw weight multiplier is set to 1 as fallback")
 			mark = len([w for w in raw_weight if w >= 0])
 			sum_w_pos = sum(raw_weight[:mark])
 			sum_w_neg = -sum(raw_weight[mark:])
 			mu_eff_pos = sum_w_pos * sum_w_pos / sum([w * w for w in raw_weight[:mark]])
 			mu_eff_neg = sum_w_neg * sum_w_neg / sum([w * w for w in raw_weight[mark:]])
-			log_write("DEBUG: mu_eff_pos/neg: " + str((mu_eff_pos, mu_eff_neg)))
+			#log_write("DEBUG: mu_eff_pos/neg: " + str((mu_eff_pos, mu_eff_neg)))
 			c_1 = a_cov / ((ndim + 1.3) ** 2 + mu_eff_pos)
 			c_cov = (4 + mu_eff_pos/ndim) / (ndim + 4 + 2 * mu_eff_pos/ndim)
 			c_mu = min(1 - c_1, a_cov * (mu_eff_pos + 1 / mu_eff_pos - 1.75) / ((ndim + 2) ** 2 + a_cov * mu_eff_pos / 2))
@@ -536,7 +536,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 			p_cov = (1 - c_cov) * np.array(p_cov) + h_sigma * np.sqrt(c_sigma * (2 - c_sigma) * mu_eff_pos) * y_w
 			new_cov_0 = (1 + c_1 * (1 - h_sigma) * c_cov * (2 - c_cov) - c_1 - c_mu * sum(act_weight)) * np.array(cov_mat)
 			new_cov_1 = c_1 * (lambda x: x.transpose() @ x)(np.atleast_2d(p_cov))
-			with np.errstate(divide='raise'):
+			with np.errstate(divide=('warn', 'raise')[int(force_length)]):
 				act_weight = [(ndim / np.power(npLA.norm(cov_invsqrt @ np.array(y_iw[z])), 2), 1)[z < mark] * w for z, w in enumerate(act_weight)]
 			new_cov_2 = c_mu * sum([w * (lambda x: x.transpose() @ x)(np.atleast_2d(y_iw[z])) for z, w in enumerate(act_weight)])
 			cov_mat = new_cov_0 + new_cov_1 + new_cov_2
@@ -559,7 +559,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 				nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
 			# with open(curdir_file_win("cma_es_param.pickle"), "wb") as cma_obj_source:
 			# 	pickle.dump(es, cma_obj_source, 0)
-			# 	log_write("DEBUG: successful write to " + curdir_file_win("cma_es_param.pickle"))
+			# 	#log_write("DEBUG: successful write to " + curdir_file_win("cma_es_param.pickle"))
 			# for z in range(int(num_out * 0.4)):
 			#	for z0, key in enumerate(var_list):
 			#		value = random.uniform(original_min[key], original_max[key])
@@ -571,10 +571,10 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 			#			value = (value, original_max[key])[value > original_max[key]]
 			#		nextbatch[key].append(value)
 			#	nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
-			# log_write("DEBUG: total sample size is set to " + str(len(nextbatch["title"])))
+			# #log_write("DEBUG: total sample size is set to " + str(len(nextbatch["title"])))
 			# with open(curdir_file_win("dict.pickle"), "wb") as dest:
 			# 	pickle.dump(nextbatch, dest, 0)
-			# 	log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
+			# 	#log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
 	except Exception as err:
 		log_write("ERROR: error during CMA-ES, details:\t" + str(err))
 		restart = True
@@ -590,7 +590,7 @@ def regenerate_cma_es(length, outlist, context=context_builder(), best_param=Non
 			pickle.dump((list(mean), float(step_sigma), list(cov_mat), list(p_sigma), list(p_cov), int(gen_count), prior_avgstd, best_point), dest, 0)
 		else:
 			pickle.dump((mean.tolist(), float(step_sigma), cov_mat.tolist(), p_sigma.tolist(), p_cov.tolist(), int(gen_count), prior_avgstd, best_point), dest, 0)
-		log_write("DEBUG: successful write to " + curdir_file_win("cma_es_selfparam.pickle"))
+		#log_write("DEBUG: successful write to " + curdir_file_win("cma_es_selfparam.pickle"))
 	if restart:
 		log_write("DEBUG: calling create() centered on best known point")
 		new_context = []
@@ -613,24 +613,24 @@ def regenerate_cma_es_lib(length, outlist, context=context_builder(), force_rese
 				es = pickle.load(cma_obj_source)
 				assert type(es) == cma.CMAEvolutionStrategy
 		else:
-			log_write("force reset enabled")
-			log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
+			#log_write("force reset enabled")
+			#log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 			es = cma.CMAEvolutionStrategy([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.3 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]))
 	except OSError as err:
-		log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
-		log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
+		#log_write("encountered error while trying to read cma_es_param.pickle file: " + str(err))
+		#log_write("initializing cma_es prior hyperparameters by taking current results as initial batch")
 		#es = pcma.CMAES([original[key] for key in var_list], 0.5, 2 * len(var_list))
 		#es = pcma.CMAES([original[key] for key in var_list], 0.5)
 		es = cma.CMAEvolutionStrategy([0.5 * (original_max[key] + original_min[key]) for key in var_list], 0.4 * max([0.5 * (original_max[key] - original_min[key]) for key in var_list]))
-	#log_write("DEBUG: current sigma shape: " + str(np.shape(es.D)))
-	log_write("DEBUG: current variances: " + str(es.sm.variances))
+	##log_write("DEBUG: current sigma shape: " + str(np.shape(es.D)))
+	#log_write("DEBUG: current variances: " + str(es.sm.variances))
 	try:
 		es_ask = cma_es_helper_2(es, outlist, var_list, es.N_pheno, num)
 	except Exception as err:
-		log_write("retrying with es.params.mu")
+		#log_write("retrying with es.params.mu")
 		es_ask = cma_es_helper_2(es, outlist, var_list, es.popsize, num)
-	#log_write("DEBUG: current sigma shape: " + str(np.shape(es.D)))
-	log_write("DEBUG: current variances: " + str(es.sm.variances))
+	##log_write("DEBUG: current sigma shape: " + str(np.shape(es.D)))
+	#log_write("DEBUG: current variances: " + str(es.sm.variances))
 	nextbatch = dict([(key, []) for key in var_list + ["title"]])
 	for generated in es_ask:
 		for z0, key in enumerate(var_list):
@@ -645,10 +645,10 @@ def regenerate_cma_es_lib(length, outlist, context=context_builder(), force_rese
 		nextbatch["title"].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
 	with open(curdir_file_win("cma_es_param.pickle"), "wb") as cma_obj_source:
 		pickle.dump(es, cma_obj_source, 0)
-		log_write("DEBUG: successful write to " + curdir_file_win("cma_es_param.pickle"))
+		#log_write("DEBUG: successful write to " + curdir_file_win("cma_es_param.pickle"))
 	with open(curdir_file_win("dict.pickle"), "wb") as dest:
 		pickle.dump(nextbatch, dest, 0)
-		log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
+		#log_write("DEBUG: successful write to " + curdir_file_win("dict.pickle"))
 '''
 def regenerate_pso(length, outlist, w, phi_p = 2, phi_g = 2, context=context_builder(), force_ignore_vb_dict=False):
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
@@ -669,12 +669,12 @@ def regenerate_pso(length, outlist, w, phi_p = 2, phi_g = 2, context=context_bui
 			vb_dict = {}
 	except OSError as err:
 		# velocity-best dict pickle file is not found
-		log_write("encountered error while trying to read pso_vb.pickle file: " + str(err))
-		log_write("fallback to empty vb_dict")
+		#log_write("encountered error while trying to read pso_vb.pickle file: " + str(err))
+		#log_write("fallback to empty vb_dict")
 		vb_dict = {}
 		# vb_dict is structured as title: [FoM, velocity vector, best position vector]
-	if len(outlist) == 0 and len(vb_dict) == 0:
-		log_write("warning: outlist and vb_dict length are both 0")
+	#if len(outlist) == 0 and len(vb_dict) == 0:
+		#log_write("warning: outlist and vb_dict length are both 0")
 	sorted_outlist = sorted(outlist, key=lambda x: x[0], reverse=True)
 	particle_title_outlist = [particle[1]['title'] for particle in sorted_outlist]
 	for particle in sorted_outlist:
@@ -745,7 +745,7 @@ def regenerate_pso(length, outlist, w, phi_p = 2, phi_g = 2, context=context_bui
 	while len(vb_dict) < num:
 		# add particles based from one of the greatest particle up to 80% of the time, random otherwise
 		if random.random() < 0.1 or first_pass:
-			log_write(''.join([str(x) for x in ["DEBUG: ", len(vb_dict), " out of ", num]]))
+			#log_write(''.join([str(x) for x in ["DEBUG: ", len(vb_dict), " out of ", num]]))
 			first_pass = False
 		new_title = "sim_" + str(int(random.random() * 1e7 + 7e7)) + ".sp"
 		while new_title in vb_dict:
@@ -807,16 +807,16 @@ def regenerate_pso(length, outlist, w, phi_p = 2, phi_g = 2, context=context_bui
 				# clamping = clamping or value > original_max[key]
 				value = (value, original_max[key])[value > original_max[key]]
 			nextbatch[key].append(value)
-		if clamping:
-			log_write("warning: clamping detected for " + particle_title)
+		#if clamping:
+			#log_write("warning: clamping detected for " + particle_title)
 	# with open(curdir_file_win("dict.pickle"), "wb") as dest:
 	# 	pickle.dump(nextbatch, dest, 0)
 	return nextbatch
 def regenerate_ga(length, outlist, context=context_builder(), use_prev = False):
 	def crossover(dict0, dict1, nu = 13, cr = 0.8, mr = 0.8, mm = 0.01, print_debug = False):
-		if print_debug:
-			log_write("mutation rate: " + str(mr * 100) + "%")
-			log_write("mutation multiplier: " + str(mm))
+		#if print_debug:
+			#log_write("mutation rate: " + str(mr * 100) + "%")
+			#log_write("mutation multiplier: " + str(mm))
 		rand = random.random()
 		beta = math.pow((2 * rand, 0.5 / (1 - rand))[rand > 0.5], 1 / (nu + 1))
 		dict2 = {}
@@ -849,27 +849,27 @@ def regenerate_ga(length, outlist, context=context_builder(), use_prev = False):
 					if paramkey in x[1]:
 						templist.append(x[1][paramkey])
 					else:
-						log_write("warning: " + x[1]["title"] + " missing parameter: " + paramkey)
-						log_write("appending random multiplier spread of " + str(random_spread * 100) + "% for parameter " + paramkey)
+						#log_write("warning: " + x[1]["title"] + " missing parameter: " + paramkey)
+						#log_write("appending random multiplier spread of " + str(random_spread * 100) + "% for parameter " + paramkey)
 						templist.append(int(original[paramkey] * (1 - random_spread + 2 * random_spread * random.random()) / original_unit[paramkey]) * original_unit[paramkey])
 				nextbatch[paramkey] = templist
 			else:
 				nextbatch[paramkey] = []
 	except Exception as err:
-		log_write("error: issue with parent extraction - " + str(err))
-		log_write("disabling parent transplant")
+		#log_write("error: issue with parent extraction - " + str(err))
+		#log_write("disabling parent transplant")
 		nextbatch = dict([(x, []) for x in list(original) + ["title"]])
 	toggle_once = True
 	while fill < num:
 		indexes = getcouple([max(x[0], 0) for x in sorted_outlist])
-		None # log_write("debug: fill - "+str(fill))
-		None # log_write("debug: rolled - "+str(indexes)[1:-1])
+		#None # #log_write("debug: fill - "+str(fill))
+		#None # #log_write("debug: rolled - "+str(indexes)[1:-1])
 		childs = crossover(sorted_outlist[indexes[0]][1], sorted_outlist[indexes[1]][1], print_debug = toggle_once)
 		if toggle_once:
 			toggle_once = False
-			None # log_write("debug: toggle_once disabled")
+			None # #log_write("debug: toggle_once disabled")
 		if num - fill == 1:
-			None # log_write("debug: add 1")
+			None # #log_write("debug: add 1")
 			selected = childs[(0, 1)[random.random() >= 0.5]]
 			nextbatch['title'].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
 			for key in [sel_key for sel_key in selected if sel_key != "title"]:
@@ -881,7 +881,7 @@ def regenerate_ga(length, outlist, context=context_builder(), use_prev = False):
 				nextbatch[key].append(value)
 			fill = fill + 1
 		else:
-			None # log_write("debug: add 2")
+			None # #log_write("debug: add 2")
 			for selected in childs:
 				nextbatch['title'].append("sim_" + str(int(time.time() * 1e6))[0:-1] + ".sp")
 				for key in [sel_key for sel_key in selected if sel_key != "title"]:
@@ -914,11 +914,11 @@ try:
 				bayes_opt_inst = pickle.load(source)
 				assert type(bayes_opt_inst) == BayesianOptimization
 			#load_logs(bayes_opt_inst, logs=[curdir_file_win("bo_log.json")])
-			#log_write("".join([str(x) for x in ["Loaded ", bayes_opt_inst.space," prior points"]]))
+			##log_write("".join([str(x) for x in ["Loaded ", bayes_opt_inst.space," prior points"]]))
 			#bayes_opt_inst.subscribe(Events.OPTIMIZATION_STEP, JSONLogger(path=curdir_file_win("bo_log.json")))
 		except OSError as err:
-			log_write("encountered error while trying to read bayes_opt_inst.pickle file: " + str(err))
-			log_write("fallback to a new run")
+			#log_write("encountered error while trying to read bayes_opt_inst.pickle file: " + str(err))
+			#log_write("fallback to a new run")
 			bayes_opt_inst = BayesianOptimization(f=None, pbounds=hyperparameter_boundaries, verbose=2)
 		sorted_outlist = sorted(outlist, key=lambda x: x[0])
 		try:

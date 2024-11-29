@@ -2,18 +2,17 @@ import os, time, math, pickle, subprocess, sys
 basedir = os.getcwd() + "/"
 def log_write(string):
 	output_str= str(int(time.time())) + ",;\t,;" + string
-	print(output_str[:output_str.index(",")] + ":\t" + string)
-	logfile = open(basedir + "run.log", "at")
-	logfile.write("\n" + output_str)
-	logfile.close()
+	# print(output_str[:output_str.index(",")] + ":\t" + string)
+	with open(basedir + "run.log", "at") as logfile: # "run.log"
+		logfile.write("\n" + output_str)
 def sub_call(string):
-	log_write("calling \'" + str(string) + "\' on PowerShell 7")
+	#log_write("calling \'" + str(string) + "\' on PowerShell 7")
 	subprocess.call("pwsh -Command "+str(string), shell=True)
 def sub_popen(string, popen_in=None):
-	log_write("calling \'" + str(string) + "\' on PowerShell 7, returning output to program")
+	#log_write("calling \'" + str(string) + "\' on PowerShell 7, returning output to program")
 	if popen_in is not None:
 		popen_in = str(popen_in)
-		log_write("\'"+popen_in+"\' will be automatically inputted in the program call above")
+		log_write("\'"+popen_in+"\' will be automatically inputted in \'" + str(string) + "\' program call, returning output to program")
 	return subprocess.Popen("pwsh -Command "+str(string), shell=True, stdin=popen_in, stdout=subprocess.PIPE).communicate()[0].decode()
 def avg(inputlist):
 	return sum(inputlist) / float(len(inputlist))
