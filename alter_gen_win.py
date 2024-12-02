@@ -2,12 +2,12 @@ import pickle, os, sys, time, subprocess
 basedir = os.getcwd().replace("\\", "/") + "/"
 def log_write(string):
 	output_str= str(int(time.time())) + ",;\t,;" + string
-	# print(output_str[:output_str.index(",")] + ":\t" + string)
+	print(output_str[:output_str.index(",")] + ":\t" + string)
 	with open(basedir + "run.log", "at") as logfile: # "run.log"
 		logfile.write("\n" + output_str)
 def sub_call(string):
-	#log_write("calling \'" + str(string) + "\' on PowerShell 7")
-	subprocess.call("pwsh -Command "+str(string), shell=True)
+	log_write("calling " + "pwsh -Command \""+str(string)+"\"")
+	subprocess.call("pwsh -Command \""+str(string)+"\"", shell=True)
 def samelen_dict(inputdict):
 	max_length = 0
 	for key in inputdict:
