@@ -209,6 +209,42 @@ def data_torture_normal_approximation(x_list, y_list):
 	return list_of_tuples
 """
 # actual machine-learning functions
+def create_lhs(length, full_random = False, context=context_builder()):
+	assert type(int(length)) == type(0)
+	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
+	# count = 0
+	dictpickle = {'title': []}
+	dict_lhs = {}
+	for key in list(original):
+		dictpickle[key] = []
+		dict_lhs[key] = random.shuffle(range(length))
+	for index in range(int(length)):
+		title = "sim_" + str(int(time.time() * 1e6))
+		#randomized = full_random or (random.random() < 0.2 and index > 0)
+		# if randomized and not full_random:
+		# 	count = count + 1
+		for key in list(original):
+			assert original[key] is not None
+			assert original_min[key] is not None
+			assert original_max[key] is not None
+			# if randomized:
+			# 	value = round(int(round(original_max[key] * random.random() / original_unit[key])) * original_unit[key], max(0, 0 - int(math.log10(original_unit[key]))))
+			# else:
+			# 	value = round(int(original[key] * (1 - (0, random_spread)[index > 0] + 2 * (0, random_spread)[index > 0] * random.random()) / original_unit[key]) * original_unit[key], max(0, 0 - int(math.log10(original_unit[key]))))
+			value = original_min[key] + (original_max[key] - original_min[key]) * dict_lhs[key][index] / length
+			value = round(int(value / original_unit[key]) * original_unit[key], max(0, 0 - int(math.log10(original_unit[key])))) 
+			if original_min[key] is not None:
+				value = (original_min[key], value)[value > original_min[key]]
+			if original_max[key] is not None:
+				value = (value, original_max[key])[value > original_max[key]]
+			dictpickle[key].append(value)
+		dictpickle['title'].append(title[0:-1]+".sp")
+		time.sleep(1e-6)
+	# if count > 0:
+	# 	log_write("".join([str(x) for x in ["DEBUG: ", count, " of ", length, " is fully randomized"]]))
+	# with open(curdir_file_win("dict.pickle") , "wb") as dest:
+	# 	pickle.dump(dictpickle, dest, 0)
+	return dictpickle
 def create(length, full_random = False, context=context_builder()):
 	assert type(int(length)) == type(0)
 	original, original_unit, original_min, original_max, random_spread = tuple([context[context_keys] for context_keys in ["original", "original_unit", "original_min", "original_max", "random_spread"]])
