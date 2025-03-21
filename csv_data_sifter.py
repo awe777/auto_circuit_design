@@ -39,11 +39,15 @@ def select(sql_select, sql_from, sql_where={}):
 	# 4, 9, 7, 9
 	# 5, 3, 2, 3
 	# select([1,3], table, {2: lambda x: x % 2 == 0}) yields [[2, 3], [5, 3]]
-def create_fromcsv(filepath, force_string=False, delimiter=",", comm_sep="."):
+def create_fromcsv(filepath, force_string=False, first_line=None, delimiter=",", comm_sep="."):
 	col_names = None
 	table = []
 	with open(filepath, "rt") as src:
-		for z, line in enumerate(src.readlines()):
+		read_lines = src.readlines()
+		if first_line is not None:
+			start_index = [str(first_line) in line for line in read_lines].index(True)
+			read_lines = read_lines[start_index:]
+		for z, line in enumerate(read_lines):
 			line_split = line.split(delimiter)
 			splitlines = [phrase.lstrip().rstrip() for z, phrase in enumerate(line_split) if z < len(line_split) - 1 or len(phrase.lstrip().rstrip()) > 0]
 			if z == 0:
