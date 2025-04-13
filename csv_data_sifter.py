@@ -40,10 +40,14 @@ def select(sql_select, sql_from, sql_where={}):
 	# 5, 3, 2, 3
 	# select([1,3], table, {2: lambda x: x % 2 == 0}) yields [[2, 3], [5, 3]]
 def create_fromcsv(filepath, force_string=False, first_line=None, delimiter=",", comm_sep="."):
+	with open(filepath, "rt") as src:
+		return create_fromlines(src.readlines(), force_string, first_line, delimiter, comm_sep)
+def create_fromlines(read_lines, force_string=False, first_line=None, delimiter=",", comm_sep="."):
 	col_names = None
 	table = []
-	with open(filepath, "rt") as src:
-		read_lines = src.readlines()
+	#with open(filepath, "rt") as src:
+	#	read_lines = src.readlines()
+	if len(read_lines) != 0:
 		if first_line is not None:
 			start_index = [str(first_line) in line for line in read_lines].index(True)
 			read_lines = read_lines[start_index:]
